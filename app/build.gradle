@@ -1,0 +1,72 @@
+plugins {
+    id 'com.android.application'
+    id 'kotlin-android'
+    id 'kotlin-android-extensions'
+}
+
+android {
+    compileSdkVersion 30
+    buildToolsVersion "30.0.2"
+
+    defaultConfig {
+        applicationId "com.wangsc.mylocation"
+        minSdkVersion 21
+        targetSdkVersion 26
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        multiDexEnabled true
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+    /**
+     * start 调试时使用自动签名，手动添加。
+     */
+    signingConfigs {
+        release {
+            storeFile file('wangsc.jks')
+            storePassword 'wangsc351489'
+            keyAlias 'key'
+            keyPassword 'wangsc351489'
+        }
+    }
+}
+
+dependencies {
+    implementation 'com.android.support:multidex:1.0.3'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+    implementation 'androidx.core:core-ktx:1.3.2'
+    implementation 'androidx.appcompat:appcompat:1.2.0'
+    implementation 'com.google.android.material:material:1.2.1'
+    implementation 'androidx.constraintlayout:constraintlayout:2.0.4'
+    testImplementation 'junit:junit:4.+'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.2'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
+
+    implementation 'com.squareup.okhttp3:okhttp:4.5.0'
+    implementation "com.squareup.okhttp3:okhttp:3.10.0"
+
+
+    //region 高德地图
+    implementation 'com.amap.api:3dmap:latest.integration'// 3D地图 3D地图sdk和导航sdk一起导入，会引起class重复异常
+//    implementation 'com.amap.api:map2d:6.0.0'// 2D地图
+//    implementation 'com.amap.api:navi-3dmap:7.2.0_3dmap7.2.0'// 导航
+    implementation 'com.amap.api:search:7.3.0'// 搜索
+    implementation 'com.amap.api:location:4.9.0' // 定位
+
+    //endregion
+}
