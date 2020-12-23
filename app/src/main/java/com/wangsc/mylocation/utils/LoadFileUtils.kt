@@ -13,7 +13,11 @@ import java.net.URL
 object LoadFileUtils {
     @JvmStatic
     fun loadFileFromHttp(url: String?, cacheFileName: String?):String {
-        val ROOT_DIR = File(Environment.getExternalStorageDirectory().toString() + "/0/mylocation")
+        var ROOT_DIR = File(Environment.getExternalStorageDirectory().toString() + "/0")
+        if (!ROOT_DIR.exists()) {
+            ROOT_DIR.mkdir()
+        }
+        ROOT_DIR = File(Environment.getExternalStorageDirectory().toString() + "/0/mylocation")
         if (!ROOT_DIR.exists()) {
             ROOT_DIR.mkdir()
         }

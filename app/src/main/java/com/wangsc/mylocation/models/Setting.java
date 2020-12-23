@@ -58,7 +58,7 @@ public class Setting {
     }
 
     public enum KEYS{
-        phone
+        phone,team_code
     }
     //endregion
 }

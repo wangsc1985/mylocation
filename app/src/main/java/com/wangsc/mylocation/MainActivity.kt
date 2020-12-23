@@ -9,6 +9,7 @@ import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.Point
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
 import android.view.View
 import android.widget.EditText
@@ -17,6 +18,7 @@ import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.amap.api.location.AMapLocationClient
 import com.amap.api.maps.*
@@ -161,15 +163,78 @@ class MainActivity : AppCompatActivity() {
         if (requestPermission() == true) {
             initOnCreate()
         }
+
+        /**
+         * 检查通知
+         */
+        if(!isNotifyAllowed()){
+            openNotifySetting()
+        }
+        if(!isNotifyAllowed()){
+            AlertDialog.Builder(this).setMessage("通知权限必须打开").setNegativeButton("知道了", DialogInterface.OnClickListener { dialog, which ->
+                this.finish()
+            }).show()
+        }
+    }
+
+    private fun isNotifyAllowed():Boolean
+    {
+        val manager = NotificationManagerCompat.from (this)
+        // areNotificationsEnabled方法的有效性官方只最低支持到API 19，低于19的仍可调用此方法不过只会返回true，即默认为用户已经开启了通知。
+        return manager.areNotificationsEnabled()
+    }
+
+    private fun openNotifySetting(){
+        val intent = Intent()
+        try {
+            intent.action = Settings.ACTION_APP_NOTIFICATION_SETTINGS
+            //8.0及以后版本使用这两个extra.  >=API 26
+            intent.putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+            intent.putExtra(Settings.EXTRA_CHANNEL_ID, applicationInfo.uid)
+            //5.0-7.1 使用这两个extra.  <= API 25, >=API 21
+            intent.putExtra("app_package", packageName)
+            intent.putExtra("app_uid", applicationInfo.uid)
+
+            startActivity(intent)
+        } catch (e: Exception) {
+            //其他低版本或者异常情况，走该节点。进入APP设置界面
+            intent.action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+            intent.putExtra("package", packageName)
+            //val uri = Uri.fromParts("package", packageName, null)
+            //intent.data = uri
+            startActivity(intent)
+        }
+
     }
 
     private fun initOnCreate() {
         val dc = DataContext(this)
-        val setting = dc.getSetting(Setting.KEYS.phone)
-        if (setting != null) {
-            phone = setting.string
+        val settingPhone = dc.getSetting(Setting.KEYS.phone)
+        val settingTeamCode = dc.getSetting(Setting.KEYS.team_code)
+        if (settingPhone != null&&settingTeamCode!=null) {
+            phone = settingPhone.string
+            teamCode = settingTeamCode.string
         }
 
+
+        if (phone.isEmpty()|| teamCode.isEmpty()) {
+            val view = View.inflate(this, R.layout.dialog_team, null)
+            val phoneView = view.findViewById<EditText>(R.id.et_phone)
+            val teamCodeView = view.findViewById<EditText>(R.id.et_teamCode)
+            AlertDialog.Builder(this).setTitle("用户信息").setIcon(android.R.drawable.ic_dialog_info)
+                .setView(view).setPositiveButton("确定", DialogInterface.OnClickListener { dialog, which ->
+                    phone = phoneView.text.toString()
+                    teamCode = teamCodeView.text.toString()
+                    dc.editSetting(Setting.KEYS.phone, phone)
+                    dc.editSetting(Setting.KEYS.team_code, teamCode)
+                    initView(dc)
+                }).setNegativeButton("取消", null).show();
+        }else{
+            initView(dc)
+        }
+    }
+
+    private fun initView(dc: DataContext) {
         try {
             initMap()
             initMarks()
@@ -177,15 +242,15 @@ class MainActivity : AppCompatActivity() {
             startTimer()
             when (showType) {
                 0 -> {
-//                    iv_showAll.setImageResource(R.drawable.show_all_off)
+    //                    iv_showAll.setImageResource(R.drawable.show_all_off)
                     tv_showAll.setTextColor(Color.BLACK)
                 }
                 1 -> {
-//                    iv_showAll.setImageResource(R.drawable.show_all_off)
+    //                    iv_showAll.setImageResource(R.drawable.show_all_off)
                     tv_showAll.setTextColor(Color.BLACK)
                 }
                 2 -> {
-//                    iv_showAll.setImageResource(R.drawable.show_all_on)
+    //                    iv_showAll.setImageResource(R.drawable.show_all_on)
                     tv_showAll.setTextColor(Color.RED)
                 }
             }
@@ -197,19 +262,10 @@ class MainActivity : AppCompatActivity() {
             }
             layout_share.setOnClickListener {
                 if (!locationIsOn) {
-                    if (phone.isEmpty()) {
-                        val editText = EditText(this)
-                        AlertDialog.Builder(this).setTitle("请输入手机号").setIcon(android.R.drawable.ic_dialog_info)
-                            .setView(editText).setPositiveButton("确定", DialogInterface.OnClickListener { dialog, which ->
-                                phone = editText.text.toString()
-                                dc.editSetting(Setting.KEYS.phone, phone)
-                            }).setNegativeButton("取消", null).show();
-                    } else {
-                        startService(Intent(this, LocationMediaTimerService::class.java))
-                        iv_share.setImageResource(R.drawable.share_on)
-                        tv_share.setTextColor(Color.RED)
-                        locationIsOn = true
-                    }
+                    startService(Intent(this, LocationMediaTimerService::class.java))
+                    iv_share.setImageResource(R.drawable.share_on)
+                    tv_share.setTextColor(Color.RED)
+                    locationIsOn = true
                 } else {
                     stopService(Intent(this, LocationMediaTimerService::class.java))
                     iv_share.setImageResource(R.drawable.share_off)
@@ -218,18 +274,22 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             layout_share.setOnLongClickListener {
-                val editText = EditText(this)
-                AlertDialog.Builder(this).setTitle("请输入手机号").setIcon(android.R.drawable.ic_dialog_info)
-                    .setView(editText).setPositiveButton("确定", DialogInterface.OnClickListener { dialog, which ->
-                        phone = editText.text.toString()
+                val view = View.inflate(this, R.layout.dialog_team, null)
+                val phoneView = view.findViewById<EditText>(R.id.et_phone)
+                val teamCodeView = view.findViewById<EditText>(R.id.et_teamCode)
+                AlertDialog.Builder(this).setTitle("用户信息").setIcon(android.R.drawable.ic_dialog_info)
+                    .setView(view).setPositiveButton("确定", DialogInterface.OnClickListener { dialog, which ->
+                        phone = phoneView.text.toString()
+                        teamCode = teamCodeView.text.toString()
                         dc.editSetting(Setting.KEYS.phone, phone)
+                        dc.editSetting(Setting.KEYS.team_code, teamCode)
                     }).setNegativeButton("取消", null).show();
                 true
             }
 
             layout_showAll.setOnClickListener {
                 showType = 2
-//                iv_showAll.setImageResource(R.drawable.show_all_on)
+    //                iv_showAll.setImageResource(R.drawable.show_all_on)
                 tv_showAll.setTextColor(Color.RED)
                 moveMarks()
                 users?.forEach {
@@ -242,7 +302,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun moveMarks() {
-        _CloudUtils.getLocations(this, "0000", object : CloudCallback {
+        _CloudUtils.getLocations(this, teamCode, object : CloudCallback {
             override fun excute(code: Int, result: Any?) {
                 if (code == 0) {
                     try {
@@ -313,7 +373,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun initMarks() {
-        _CloudUtils.getLocations(this, "0000", object : CloudCallback {
+        _CloudUtils.getLocations(this, teamCode, object : CloudCallback {
             override fun excute(code: Int, result: Any?) {
                 if (code == 0) {
                     try {
