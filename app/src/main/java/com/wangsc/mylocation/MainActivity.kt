@@ -120,7 +120,7 @@ class MainActivity : AppCompatActivity() {
             targetUserName = name
             showType = 1
             moveMarks()
-            iv_showAll.setImageResource(R.drawable.show_all_off)
+//            iv_showAll.setImageResource(R.drawable.show_all_off)
             tv_showAll.setTextColor(Color.BLACK)
         }
 
@@ -177,15 +177,15 @@ class MainActivity : AppCompatActivity() {
             startTimer()
             when (showType) {
                 0 -> {
-                    iv_showAll.setImageResource(R.drawable.show_all_off)
+//                    iv_showAll.setImageResource(R.drawable.show_all_off)
                     tv_showAll.setTextColor(Color.BLACK)
                 }
                 1 -> {
-                    iv_showAll.setImageResource(R.drawable.show_all_off)
+//                    iv_showAll.setImageResource(R.drawable.show_all_off)
                     tv_showAll.setTextColor(Color.BLACK)
                 }
                 2 -> {
-                    iv_showAll.setImageResource(R.drawable.show_all_on)
+//                    iv_showAll.setImageResource(R.drawable.show_all_on)
                     tv_showAll.setTextColor(Color.RED)
                 }
             }
@@ -229,7 +229,7 @@ class MainActivity : AppCompatActivity() {
 
             layout_showAll.setOnClickListener {
                 showType = 2
-                iv_showAll.setImageResource(R.drawable.show_all_on)
+//                iv_showAll.setImageResource(R.drawable.show_all_on)
                 tv_showAll.setTextColor(Color.RED)
                 moveMarks()
                 users?.forEach {
@@ -474,7 +474,7 @@ class MainActivity : AppCompatActivity() {
         locationClient = AMapLocationClient(this)
         aMap.setOnMapTouchListener {
             showType = 0
-            iv_showAll.setImageResource(R.drawable.show_all_off)
+//            iv_showAll.setImageResource(R.drawable.show_all_off)
             tv_showAll.setTextColor(Color.BLACK)
             users?.forEach {
                 it.view.findViewById<TextView>(R.id.tv_time).setTextColor(Color.BLACK)
