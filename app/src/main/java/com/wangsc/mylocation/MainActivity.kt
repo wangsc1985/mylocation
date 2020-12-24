@@ -334,8 +334,10 @@ class MainActivity : AppCompatActivity() {
 
                                         val span = (System.currentTimeMillis() - it.locationTime.timeInMillis) / 1000
                                         var time = ""
-                                        if (span > 60 * 60) {
-                                            time = "很久"
+                                        if(span>60*60*24){
+                                            time = "${span/(60*60*24)}天前"
+                                        }else if (span > 60 * 60) {
+                                            time = "${span/(60*60)}小时前"
                                         } else if (span > 60) {
                                             time = "${span / 60}分钟前"
                                         } else if (span > 10) {
