@@ -5,6 +5,7 @@ import android.content.Intent
 import android.media.MediaPlayer
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
 import androidx.annotation.RequiresApi
 import com.wangsc.mylocation.R
 import com.wangsc.mylocation.e
@@ -17,8 +18,12 @@ import com.wangsc.mylocation.utils._Utils
 class LocationMediaTimerService : Service() {
 
     private lateinit var mPlayer: MediaPlayer
+    private var wakeLock:PowerManager.WakeLock?=null
+
+
     fun playMeida() {
         try {
+//            wakeLock = _Utils.acquireWakeLock(applicationContext)
             mPlayer = MediaPlayer.create(applicationContext, R.raw.second_30)
             mPlayer.setVolume(0.01f, 0.01f)
             mPlayer.setLooping(true)
@@ -28,6 +33,7 @@ class LocationMediaTimerService : Service() {
         }
     }
     fun stopMedia(){
+//        _Utils.releaseWakeLock(applicationContext,wakeLock)
         mPlayer.stop()
         mPlayer.release()
     }
@@ -42,8 +48,9 @@ class LocationMediaTimerService : Service() {
             AMapUtil.getLocationContinue(applicationContext, "屏幕解锁",
                 object : AMapUtil.LocationCallBack {
                     override fun OnLocationedListener(newLocation: Location) {
+//                        e(newLocation.Address)
                         // 记录到云数据库
-                        _CloudUtils.addLocation(applicationContext, phone, newLocation.Latitude, newLocation.Longitude, newLocation.Address, null)
+                        _CloudUtils.updateLocation(applicationContext, phone, newLocation.Latitude, newLocation.Longitude, newLocation.Address, null)
                     }
                 })
             playMeida()

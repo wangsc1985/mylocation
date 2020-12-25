@@ -49,6 +49,7 @@ class MainActivity : AppCompatActivity() {
 
     //region 动态权限申请
     var permissions = arrayOf(
+//        Manifest.permission.WAKE_LOCK,
         Manifest.permission.ACCESS_COARSE_LOCATION,
         Manifest.permission.ACCESS_FINE_LOCATION,
         Manifest.permission.ACCESS_NETWORK_STATE,
@@ -56,6 +57,7 @@ class MainActivity : AppCompatActivity() {
         Manifest.permission.CHANGE_WIFI_STATE,
         Manifest.permission.INTERNET,
         Manifest.permission.READ_PHONE_STATE,
+        Manifest.permission.READ_EXTERNAL_STORAGE,
         Manifest.permission.WRITE_EXTERNAL_STORAGE,
         Manifest.permission.ACCESS_LOCATION_EXTRA_COMMANDS,
         Manifest.permission.ACCESS_FINE_LOCATION,
@@ -374,7 +376,7 @@ class MainActivity : AppCompatActivity() {
         } else if (span > 10) {
             time1 = "${span}秒前"
         } else {
-            time1 = "刚刚"
+            time1 = "实时"
         }
         return time1
     }

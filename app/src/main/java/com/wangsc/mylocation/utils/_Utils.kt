@@ -14,6 +14,7 @@ import android.net.ConnectivityManager
 import android.os.Build
 import android.os.Environment
 import android.os.PowerManager
+import android.os.PowerManager.PARTIAL_WAKE_LOCK
 import android.os.PowerManager.WakeLock
 import android.speech.tts.TextToSpeech
 import android.speech.tts.TextToSpeech.OnInitListener
@@ -284,10 +285,8 @@ ROOT_DIR.mkdir()
      */
     fun acquireWakeLock(context: Context, PowerManager: Int): WakeLock? {
         try {
-            val pm =
-                context.getSystemService(Context.POWER_SERVICE) as PowerManager
-            val wakeLock =
-                pm.newWakeLock(PowerManager, context.javaClass.canonicalName)
+            val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+            val wakeLock = pm.newWakeLock(PowerManager, context.javaClass.canonicalName)
             if (null != wakeLock) {
                 wakeLock.acquire()
                 Log.e("wangsc", "锁定唤醒锁: $wakeLock")
@@ -299,17 +298,18 @@ ROOT_DIR.mkdir()
         }
         return null
     }
+    fun acquireWakeLock(context: Context): WakeLock? {
+        return acquireWakeLock(context,PARTIAL_WAKE_LOCK)
+    }
 
     /**
      * 释放设备电源锁
      */
     fun releaseWakeLock(context: Context?, wakeLock: WakeLock?) {
-        var wakeLock = wakeLock
         try {
             Log.e("wangsc", "解除唤醒锁: $wakeLock")
             if (null != wakeLock && wakeLock.isHeld) {
                 wakeLock.release()
-                wakeLock = null
                 //                addRunLog2File(context, "", "解除唤醒锁。");
             }
         } catch (e: Exception) {

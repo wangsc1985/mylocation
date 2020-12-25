@@ -108,6 +108,27 @@ object _CloudUtils {
 
     }
 
+    fun updateLocation(context: Context, phone: String, latitude: Double, longitude: Double, address: String, callback: CloudCallback?) {
+        newMsgCount = 0
+        val accessToken = getToken(context)
+        // 通过accessToken，env，云函数名，args 在微信小程序云端获取数据
+        val url = "https://api.weixin.qq.com/tcb/invokecloudfunction?access_token=$accessToken&env=$env&name=updateLocation"
+        val args: MutableList<PostArgument> = ArrayList()
+        args.add(PostArgument("phone", phone))
+        args.add(PostArgument("date", System.currentTimeMillis()))
+        args.add(PostArgument("latitude", latitude))
+        args.add(PostArgument("longitude", longitude))
+        args.add(PostArgument("address", address))
+        postRequestByJson(url, args, HttpCallback { html ->
+            try {
+                e("update location html : $html")
+                callback?.excute(0, html)
+            } catch (e: Exception) {
+                callback?.excute(-2, e.message)
+            }
+        })
+    }
+
     @JvmStatic
     fun addLocation(context: Context, phone: String, latitude: Double, longitude: Double, address: String, callback: CloudCallback?) {
         newMsgCount = 0
@@ -201,23 +222,6 @@ object _CloudUtils {
     }
 
 
-    fun updatePositions(context: Context, name: String?, positoinsJson: String?, callback: CloudCallback?) {
-        newMsgCount = 0
-        val accessToken = getToken(context)
-        // 通过accessToken，env，云函数名，args 在微信小程序云端获取数据
-        val url = "https://api.weixin.qq.com/tcb/invokecloudfunction?access_token=$accessToken&env=$env&name=updatePositions"
-        val args: MutableList<PostArgument> = ArrayList()
-        args.add(PostArgument("name", name))
-        args.add(PostArgument("positions", positoinsJson))
-        postRequestByJson(url, args, HttpCallback { html ->
-            try {
-                e(html)
-                callback?.excute(0, html)
-            } catch (e: Exception) {
-                callback?.excute(-2, e.message)
-            }
-        })
-    }
 
     private fun e(data: Any) {
         Log.e("wangsc", data.toString())
