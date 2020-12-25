@@ -19,8 +19,7 @@ public class Abc {
             byte[] publicKey = md.digest(cert);
             StringBuffer hexString = new StringBuffer();
             for (int i = 0; i < publicKey.length; i++) {
-                String appendString = Integer.toHexString(0xFF & publicKey[i])
-                        .toUpperCase(Locale.US);
+                String appendString = Integer.toHexString(0xFF & publicKey[i]).toUpperCase(Locale.US);
                 if (appendString.length() == 1)
                     hexString.append("0");
                 hexString.append(appendString);

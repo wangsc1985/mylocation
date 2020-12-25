@@ -36,7 +36,7 @@ object _CloudUtils {
                 /**
                  * token仍有效
                  */
-                e("本地token有效期：${DateTime(exprires).toLongDateTimeString()}")
+//                e("本地token有效期：${DateTime(exprires).toLongDateTimeString()}")
                 return dc.getSetting("token").string
             }
         } else {
@@ -130,7 +130,6 @@ object _CloudUtils {
                 callback?.excute(-2, e.message)
             }
         })
-
     }
 
     fun getLocations(context: Context, teamCode: String, callback: CloudCallback?) {
@@ -169,7 +168,7 @@ object _CloudUtils {
                 callback?.excute(-2, e.message)
             }
             val b = System.currentTimeMillis()
-            e("从微信数据库获取位置，时间间隔：${b - a}")
+//            e("从微信数据库获取位置，时间间隔：${b - a}")
         })
     }
 

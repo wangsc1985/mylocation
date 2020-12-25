@@ -47,6 +47,7 @@ class MainActivity : AppCompatActivity() {
     private var showType = 2
     private var targetUserName = ""
 
+    //region 动态权限申请
     var permissions = arrayOf(
         Manifest.permission.ACCESS_COARSE_LOCATION,
         Manifest.permission.ACCESS_FINE_LOCATION,
@@ -99,9 +100,9 @@ class MainActivity : AppCompatActivity() {
 //                            this.finish()
 //                        }).show()
 //                    }else{
-                        AlertDialog.Builder(this).setMessage("授权失败").setNegativeButton("知道了", DialogInterface.OnClickListener { dialog, which ->
-                            this.finish()
-                        }).show()
+                    AlertDialog.Builder(this).setMessage("授权失败").setNegativeButton("知道了", DialogInterface.OnClickListener { dialog, which ->
+                        this.finish()
+                    }).show()
 //                    }
                     return
                 }
@@ -111,6 +112,7 @@ class MainActivity : AppCompatActivity() {
         }
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
     }
+    //endregion
 
 
     fun addUserView(name: String, avatarImg: Bitmap, time: String): View {
@@ -155,6 +157,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         textureMapView.onCreate(savedInstanceState)
+        e(Abc.sHA1(this))
 
         /**
          * 如果全部权限授权通过，直接运行初始化方法。
@@ -163,28 +166,15 @@ class MainActivity : AppCompatActivity() {
         if (requestPermission() == true) {
             initOnCreate()
         }
-
-        /**
-         * 检查通知
-         */
-        if(!isNotifyAllowed()){
-            openNotifySetting()
-        }
-        if(!isNotifyAllowed()){
-            AlertDialog.Builder(this).setMessage("通知权限必须打开").setNegativeButton("知道了", DialogInterface.OnClickListener { dialog, which ->
-                this.finish()
-            }).show()
-        }
     }
 
-    private fun isNotifyAllowed():Boolean
-    {
-        val manager = NotificationManagerCompat.from (this)
+    private fun isNotifyAllowed(): Boolean {
+        val manager = NotificationManagerCompat.from(this)
         // areNotificationsEnabled方法的有效性官方只最低支持到API 19，低于19的仍可调用此方法不过只会返回true，即默认为用户已经开启了通知。
         return manager.areNotificationsEnabled()
     }
 
-    private fun openNotifySetting(){
+    private fun openNotifySetting() {
         val intent = Intent()
         try {
             intent.action = Settings.ACTION_APP_NOTIFICATION_SETTINGS
@@ -211,13 +201,13 @@ class MainActivity : AppCompatActivity() {
         val dc = DataContext(this)
         val settingPhone = dc.getSetting(Setting.KEYS.phone)
         val settingTeamCode = dc.getSetting(Setting.KEYS.team_code)
-        if (settingPhone != null&&settingTeamCode!=null) {
+        if (settingPhone != null && settingTeamCode != null) {
             phone = settingPhone.string
             teamCode = settingTeamCode.string
         }
 
 
-        if (phone.isEmpty()|| teamCode.isEmpty()) {
+        if (phone.isEmpty() || teamCode.isEmpty()) {
             val view = View.inflate(this, R.layout.dialog_team, null)
             val phoneView = view.findViewById<EditText>(R.id.et_phone)
             val teamCodeView = view.findViewById<EditText>(R.id.et_teamCode)
@@ -229,7 +219,7 @@ class MainActivity : AppCompatActivity() {
                     dc.editSetting(Setting.KEYS.team_code, teamCode)
                     initView(dc)
                 }).setNegativeButton("取消", null).show();
-        }else{
+        } else {
             initView(dc)
         }
     }
@@ -242,15 +232,15 @@ class MainActivity : AppCompatActivity() {
             startTimer()
             when (showType) {
                 0 -> {
-    //                    iv_showAll.setImageResource(R.drawable.show_all_off)
+                    //                    iv_showAll.setImageResource(R.drawable.show_all_off)
                     tv_showAll.setTextColor(Color.BLACK)
                 }
                 1 -> {
-    //                    iv_showAll.setImageResource(R.drawable.show_all_off)
+                    //                    iv_showAll.setImageResource(R.drawable.show_all_off)
                     tv_showAll.setTextColor(Color.BLACK)
                 }
                 2 -> {
-    //                    iv_showAll.setImageResource(R.drawable.show_all_on)
+                    //                    iv_showAll.setImageResource(R.drawable.show_all_on)
                     tv_showAll.setTextColor(Color.RED)
                 }
             }
@@ -261,16 +251,20 @@ class MainActivity : AppCompatActivity() {
                 locationIsOn = true
             }
             layout_share.setOnClickListener {
-                if (!locationIsOn) {
-                    startService(Intent(this, LocationMediaTimerService::class.java))
-                    iv_share.setImageResource(R.drawable.share_on)
-                    tv_share.setTextColor(Color.RED)
-                    locationIsOn = true
-                } else {
-                    stopService(Intent(this, LocationMediaTimerService::class.java))
-                    iv_share.setImageResource(R.drawable.share_off)
-                    tv_share.setTextColor(Color.BLACK)
-                    locationIsOn = false
+                if (!isNotifyAllowed()) {
+                    openNotifySetting()
+                }else{
+                    if (!locationIsOn) {
+                        startService(Intent(this, LocationMediaTimerService::class.java))
+                        iv_share.setImageResource(R.drawable.share_on)
+                        tv_share.setTextColor(Color.RED)
+                        locationIsOn = true
+                    } else {
+                        stopService(Intent(this, LocationMediaTimerService::class.java))
+                        iv_share.setImageResource(R.drawable.share_off)
+                        tv_share.setTextColor(Color.BLACK)
+                        locationIsOn = false
+                    }
                 }
             }
             layout_share.setOnLongClickListener {
@@ -289,7 +283,7 @@ class MainActivity : AppCompatActivity() {
 
             layout_showAll.setOnClickListener {
                 showType = 2
-    //                iv_showAll.setImageResource(R.drawable.show_all_on)
+                //                iv_showAll.setImageResource(R.drawable.show_all_on)
                 tv_showAll.setTextColor(Color.RED)
                 moveMarks()
                 users?.forEach {
@@ -309,7 +303,7 @@ class MainActivity : AppCompatActivity() {
                         var models = result as MutableList<User>
                         var latlngs: MutableList<LatLng> = ArrayList()
                         var myLatlng: LatLng? = null
-                        e(models.size)
+//                        e(models.size)
                         models.forEach {
                             if (targetUserName.isEmpty()) {
                                 if (it.phone == phone) {
@@ -330,21 +324,11 @@ class MainActivity : AppCompatActivity() {
                                         user.latitude = it.latitude
                                         user.longitude = it.longitude
                                         user.locationTime = it.locationTime
-                                        e("${it.locationTime.toShortTimeString()}  ${it.name}\t[ ${it.latitude} , ${it.longitude} ]")
+//                                        e("${it.locationTime.toShortTimeString()}  ${it.name}\t[ ${it.latitude} , ${it.longitude} ]")
 
                                         val span = (System.currentTimeMillis() - it.locationTime.timeInMillis) / 1000
                                         var time = ""
-                                        if(span>60*60*24){
-                                            time = "${span/(60*60*24)}天前"
-                                        }else if (span > 60 * 60) {
-                                            time = "${span/(60*60)}小时前"
-                                        } else if (span > 60) {
-                                            time = "${span / 60}分钟前"
-                                        } else if (span > 10) {
-                                            time = "${span}秒前"
-                                        } else {
-                                            time = "刚刚"
-                                        }
+                                        time = span2time(span)
                                         if (user.locationMarker != null && user.avatarMarker != null) {
                                             updateUserView(user.name, user.view, time)
                                             moveMarker(user.locationMarker, it.latitude, it.longitude)
@@ -372,6 +356,27 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         })
+    }
+
+    private fun span2time(span: Long): String {
+        var time1 = ""
+
+        if (span > 60 * 60 * 24 * 365) {
+            time1 = "${span / (60 * 60 * 24 * 365)}年前"
+        } else if (span > 60 * 60 * 24 * 30) {
+            time1 = "${span / (60 * 60 * 24 * 30)}月前"
+        } else if (span > 60 * 60 * 24) {
+            time1 = "${span / (60 * 60 * 24)}天前"
+        } else if (span > 60 * 60) {
+            time1 = "${span / (60 * 60)}小时前"
+        } else if (span > 60) {
+            time1 = "${span / 60}分钟前"
+        } else if (span > 10) {
+            time1 = "${span}秒前"
+        } else {
+            time1 = "刚刚"
+        }
+        return time1
     }
 
     fun initMarks() {
@@ -409,17 +414,7 @@ class MainActivity : AppCompatActivity() {
                                                 val avatar = BitmapFactory.decodeFile(url)
                                                 val span = (System.currentTimeMillis() - it.locationTime.timeInMillis) / 1000
                                                 var time = ""
-                                                if(span>60*60*24){
-                                                    time = "${span/(60*60*24)}天前"
-                                                }else if (span > 60 * 60) {
-                                                    time = "${span/(60*60)}小时前"
-                                                } else if (span > 60) {
-                                                    time = "${span / 60}分钟前"
-                                                } else if (span > 10) {
-                                                    time = "${span}秒前"
-                                                } else {
-                                                    time = "刚刚"
-                                                }
+                                                time = span2time(span)
 
                                                 it.view = addUserView(it.name, avatar, time)
                                                 it.locationMarker = addLocationMarkers(it.locationTime.toTimeString(), it.sex, it.latitude, it.longitude)

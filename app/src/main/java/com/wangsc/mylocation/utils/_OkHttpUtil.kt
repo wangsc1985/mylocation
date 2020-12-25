@@ -2,6 +2,7 @@ package com.wangsc.mylocation.utils
 
 import android.util.Log
 import com.wangsc.mylocation.callbacks.HttpCallback
+import com.wangsc.mylocation.e
 import com.wangsc.mylocation.models.PostArgument
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
