@@ -32,7 +32,7 @@ android {
      */
     signingConfigs {
         release {
-            storeFile file('E:\\Workspace\\android-studio\\wangsc.jks')
+            storeFile file('wangsc.jks')
             storePassword 'wangsc351489'
             keyAlias 'key'
             keyPassword 'wangsc351489'
