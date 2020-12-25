@@ -140,6 +140,7 @@ object AMapUtil {
                         callBack.OnLocationedListener(l)
                     }else{
                         e("高德地图获取位置失败：CODE : ${location.errorCode}")
+                        _Utils.log2file("error","定位失败，CODE${location.errorCode}","")
                     }
                 }
             })

@@ -3,6 +3,7 @@ package com.wangsc.mylocation.utils
 import android.os.Environment
 import com.wangsc.mylocation.callbacks.HttpCallback
 import com.wangsc.mylocation.e
+import com.wangsc.mylocation.utils._Session.ROOT_DIR
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -13,14 +14,6 @@ import java.net.URL
 object LoadFileUtils {
     @JvmStatic
     fun loadFileFromHttp(url: String?, cacheFileName: String?):String {
-        var ROOT_DIR = File(Environment.getExternalStorageDirectory().toString() + "/0")
-        if (!ROOT_DIR.exists()) {
-            ROOT_DIR.mkdir()
-        }
-        ROOT_DIR = File(Environment.getExternalStorageDirectory().toString() + "/0/mylocation")
-        if (!ROOT_DIR.exists()) {
-            ROOT_DIR.mkdir()
-        }
         val cacheFile = File(ROOT_DIR.absolutePath, cacheFileName)
         if (!cacheFile.exists()) {
             try {

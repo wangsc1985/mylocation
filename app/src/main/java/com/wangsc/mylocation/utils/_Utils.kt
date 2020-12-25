@@ -24,6 +24,7 @@ import android.widget.Toast
 import com.wangsc.mylocation.MainActivity
 import com.wangsc.mylocation.e
 import com.wangsc.mylocation.models.DateTime
+import com.wangsc.mylocation.utils._Session.ROOT_DIR
 import java.io.*
 import java.util.*
 
@@ -31,7 +32,6 @@ import java.util.*
  * Created by 阿弥陀佛 on 2016/10/18.
  */
 object _Utils {
-
     /**
      * 判断服务是否在运行
      * @param context
@@ -49,6 +49,7 @@ object _Utils {
         }
         return false
     }
+
     /**
      * 隐藏虚拟按键，并且全屏
      */
@@ -190,7 +191,7 @@ object _Utils {
         return msg
     }
 
-    val ROOT_DIR = File(Environment.getExternalStorageDirectory().toString() + "/0/myclock")
+
     /**
      * 将日志记录到指定文件，文件名{filename}不用添加后缀。
      */
@@ -203,7 +204,7 @@ object _Utils {
             writer.newLine()
             writer.write(item)
             writer.newLine()
-            if(message!=null) {
+            if (message != null) {
                 writer.write(message)
                 writer.newLine()
             }
@@ -236,11 +237,7 @@ object _Utils {
         }
         return msg
     }
-init {
-    if(!ROOT_DIR.exists()){
-ROOT_DIR.mkdir()
-    }
-}
+
     fun getFilesWithSuffix(
         path: String?,
         suffix: String?
@@ -298,8 +295,9 @@ ROOT_DIR.mkdir()
         }
         return null
     }
+
     fun acquireWakeLock(context: Context): WakeLock? {
-        return acquireWakeLock(context,PARTIAL_WAKE_LOCK)
+        return acquireWakeLock(context, PARTIAL_WAKE_LOCK)
     }
 
     /**

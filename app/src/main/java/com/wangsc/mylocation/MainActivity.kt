@@ -159,7 +159,10 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         textureMapView.onCreate(savedInstanceState)
-        e(Abc.sHA1(this))
+
+        val sha1 = Abc.sHA1(this)
+        e(sha1)
+        _Utils.log2file("run","SHA1",sha1)
 
         /**
          * 如果全部权限授权通过，直接运行初始化方法。

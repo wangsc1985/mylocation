@@ -18,8 +18,8 @@ import kotlin.collections.ArrayList
 object _CloudUtils {
     private var newMsgCount = 0
     private val env = "weizhao-8g92xew132e140ba"
-    private val appid = "wxb7d4c0ace04910ed";
-    private val secret = "cc7cc71d838f5b2045a17de11e5a90a1";
+    private val appid = "wxb7d4c0ace04910ed"
+    private val secret = "cc7cc71d838f5b2045a17de11e5a90a1"
 
     @JvmStatic
     fun getToken(context: Context): String {
@@ -76,36 +76,6 @@ object _CloudUtils {
         })
         latch.await()
         return token
-    }
-
-    @JvmStatic
-    fun saveSetting(context: Context, pwd: String?, name: String?, value: Any, callback: CloudCallback?) {
-        newMsgCount = 0
-
-        val accessToken = getToken(context)
-        // 通过accessToken，env，云函数名，args 在微信小程序云端获取数据
-        val url = "https://api.weixin.qq.com/tcb/invokecloudfunction?access_token=$accessToken&env=$env&name=saveSetting"
-        val args: MutableList<PostArgument> = ArrayList()
-        args.add(PostArgument("name", name))
-        args.add(PostArgument("value", value.toString()))
-        postRequestByJson(url, args, HttpCallback { html ->
-            try {
-//                e(html)
-                val resp_data: Any = _JsonUtils.getValueByKey(html, "resp_data")
-                if (_JsonUtils.isContainsKey(resp_data, "success")) {
-                    val code = _JsonUtils.getValueByKey(resp_data.toString(), "code").toInt()
-                    when (code) {
-                        0 -> callback?.excute(0, "修改完毕")
-                        1 -> callback?.excute(1, "添加成功")
-                    }
-                } else if (_JsonUtils.isContainsKey(resp_data, "msg")) {
-                    callback?.excute(-1, "访问码错误")
-                }
-            } catch (e: Exception) {
-                callback?.excute(-2, e.message)
-            }
-        })
-
     }
 
     fun updateLocation(context: Context, phone: String, latitude: Double, longitude: Double, address: String, callback: CloudCallback?) {
@@ -220,8 +190,6 @@ object _CloudUtils {
             callback?.excute(-2, e.message)
         }
     }
-
-
 
     private fun e(data: Any) {
         Log.e("wangsc", data.toString())
