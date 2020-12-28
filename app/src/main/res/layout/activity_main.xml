@@ -24,8 +24,9 @@
             android:id="@+id/layout_showAll"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginLeft="10dp"
-            android:orientation="vertical">
+            android:layout_marginLeft="5dp"
+            android:orientation="vertical"
+            android:padding="5dp">
 
             <ImageView
                 android:id="@+id/iv_showAll"
@@ -33,7 +34,7 @@
                 android:layout_height="50dp"
                 android:background="@color/cardview_dark_background"
                 android:padding="5dp"
-                app:srcCompat="@drawable/people" />
+                app:srcCompat="@drawable/people_unchecked" />
 
             <TextView
                 android:id="@+id/tv_showAll"
@@ -66,7 +67,8 @@
         android:id="@+id/layout_share"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="16dp"
+        android:layout_marginEnd="5dp"
+        android:padding="5dp"
         android:orientation="vertical"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -76,8 +78,8 @@
             android:id="@+id/iv_share"
             android:layout_width="50dp"
             android:layout_height="50dp"
-            android:background="@color/white"
             android:padding="10dp"
+            android:background="@color/cardview_dark_background"
             app:layout_constraintBottom_toTopOf="@+id/layout_users"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"

@@ -9,4 +9,5 @@
     <color name="white">#FFFFFFFF</color>
     <color name="location_accuracy">#28326ccf</color>
     <color name="control">#28E4E4E4</color>
+    <color name="checked_box">#C8FFE14B</color>
 </resources>

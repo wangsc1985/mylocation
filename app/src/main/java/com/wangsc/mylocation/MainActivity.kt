@@ -14,6 +14,7 @@ import android.util.Log
 import android.view.View
 import android.widget.EditText
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -117,6 +118,46 @@ class MainActivity : AppCompatActivity() {
     //endregion
 
 
+    val checkedBoxColor = R.color.checked_box
+    fun showAllButtonChecked(){
+        layout_showAll.setBackgroundResource(checkedBoxColor)
+        iv_showAll.setImageResource(R.drawable.people_checked)
+        users?.forEach {
+                it.view.findViewById<LinearLayout>(R.id.layout_root).setBackgroundColor(Color.TRANSPARENT)
+        }
+    }
+
+    fun userButtonChecked(){
+        layout_showAll.setBackgroundColor(Color.TRANSPARENT)
+        iv_showAll.setImageResource(R.drawable.people_unchecked)
+        users?.forEach {
+            if(it.name==targetUserName){
+                it.view.findViewById<LinearLayout>(R.id.layout_root).setBackgroundResource(checkedBoxColor)
+            }else{
+                it.view.findViewById<LinearLayout>(R.id.layout_root).setBackgroundColor(Color.TRANSPARENT)
+            }
+        }
+    }
+
+    private fun nothingChecked() {
+        layout_showAll.setBackgroundColor(Color.TRANSPARENT)
+        users?.forEach {
+            it.view.findViewById<LinearLayout>(R.id.layout_root).setBackgroundColor(Color.TRANSPARENT)
+        }
+    }
+
+    private fun shareButtonOff() {
+        layout_share.setBackgroundColor(Color.TRANSPARENT)
+        iv_share.setImageResource(R.drawable.share_off)
+//        tv_share.setTextColor(Color.BLACK)
+    }
+
+    private fun shareButtonOn() {
+        layout_share.setBackgroundResource(checkedBoxColor)
+        iv_share.setImageResource(R.drawable.share_on)
+//        tv_share.setTextColor(Color.RED)
+    }
+
     fun addUserView(name: String, avatarImg: Bitmap, time: String): View {
         val view = View.inflate(this, R.layout.inflate_location_user, null)
         val avatarView = view.findViewById<ImageView>(R.id.iv_avatar)
@@ -126,8 +167,8 @@ class MainActivity : AppCompatActivity() {
             targetUserName = name
             showType = 1
             moveMarks()
-//            iv_showAll.setImageResource(R.drawable.show_all_off)
-            tv_showAll.setTextColor(Color.BLACK)
+
+            userButtonChecked()
         }
 
         avatarView.setImageBitmap(avatarImg)
@@ -142,14 +183,15 @@ class MainActivity : AppCompatActivity() {
 
     fun updateUserView(name: String, view: View, time: String) {
         val timeView = view.findViewById<TextView>(R.id.tv_time)
+//        val layoutView = view.findViewById<LinearLayout>(R.id.layout_root)
         runOnUiThread {
-            if (showType == 1) {
-                if (name == targetUserName) {
-                    timeView.setTextColor(Color.RED)
-                } else {
-                    timeView.setTextColor(Color.BLACK)
-                }
-            }
+//            if (showType == 1) {
+//                if (name == targetUserName) {
+//                    layoutView.setBackgroundColor(Color.GRAY)
+//                } else {
+//                    layoutView.setBackgroundColor(Color.TRANSPARENT)
+//                }
+//            }
             timeView.setText(time)
         }
     }
@@ -235,24 +277,10 @@ class MainActivity : AppCompatActivity() {
             initMarks()
 
             startTimer()
-            when (showType) {
-                0 -> {
-                    //                    iv_showAll.setImageResource(R.drawable.show_all_off)
-                    tv_showAll.setTextColor(Color.BLACK)
-                }
-                1 -> {
-                    //                    iv_showAll.setImageResource(R.drawable.show_all_off)
-                    tv_showAll.setTextColor(Color.BLACK)
-                }
-                2 -> {
-                    //                    iv_showAll.setImageResource(R.drawable.show_all_on)
-                    tv_showAll.setTextColor(Color.RED)
-                }
-            }
+            showAllButtonChecked()
 
             if (_Utils.isRunService(this, "com.wangsc.mylocation.sevice.LocationMediaTimerService")) {
-                iv_share.setImageResource(R.drawable.share_on)
-                tv_share.setTextColor(Color.RED)
+                shareButtonOn()
                 locationIsOn = true
             }
             layout_share.setOnClickListener {
@@ -261,13 +289,11 @@ class MainActivity : AppCompatActivity() {
                 }else{
                     if (!locationIsOn) {
                         startService(Intent(this, LocationMediaTimerService::class.java))
-                        iv_share.setImageResource(R.drawable.share_on)
-                        tv_share.setTextColor(Color.RED)
+                        shareButtonOn()
                         locationIsOn = true
                     } else {
                         stopService(Intent(this, LocationMediaTimerService::class.java))
-                        iv_share.setImageResource(R.drawable.share_off)
-                        tv_share.setTextColor(Color.BLACK)
+                        shareButtonOff()
                         locationIsOn = false
                     }
                 }
@@ -288,18 +314,13 @@ class MainActivity : AppCompatActivity() {
 
             layout_showAll.setOnClickListener {
                 showType = 2
-                //                iv_showAll.setImageResource(R.drawable.show_all_on)
-                tv_showAll.setTextColor(Color.RED)
                 moveMarks()
-                users?.forEach {
-                    it.view.findViewById<TextView>(R.id.tv_time).setTextColor(Color.BLACK)
-                }
+                showAllButtonChecked()
             }
         } catch (e: Exception) {
             e(e.message!!)
         }
     }
-
     fun moveMarks() {
         _CloudUtils.getLocations(this, teamCode, object : CloudCallback {
             override fun excute(code: Int, result: Any?) {
@@ -538,22 +559,10 @@ class MainActivity : AppCompatActivity() {
         locationClient = AMapLocationClient(this)
         aMap.setOnMapTouchListener {
             showType = 0
-//            iv_showAll.setImageResource(R.drawable.show_all_off)
-            tv_showAll.setTextColor(Color.BLACK)
-            users?.forEach {
-                it.view.findViewById<TextView>(R.id.tv_time).setTextColor(Color.BLACK)
-            }
-
-//            Thread.sleep(10000)
-//            showType=2
-//            iv_nag.setImageResource(R.drawable.navigation_off)
-//            iv_showAll.setImageResource(R.drawable.show_all_on)
+            nothingChecked()
         }
-//        aMap.setOnMapLongClickListener {
-//            showType=0
-//            moveMarks()
-//        }
     }
+
 
     private fun updateBounds(latlngs: MutableList<LatLng>) {
         /*  val latLngs: MutableList<LatLng> = ArrayList()
@@ -571,7 +580,6 @@ class MainActivity : AppCompatActivity() {
                     .color(Color.argb(255, 1, 1, 1))
             )
     //上面这一步已完成画线
-    //上面这一步已完成画线
             aMap.addMarker(
                 MarkerOptions()
                     .position(LatLng(36.5333737316, 117.5162532850))
@@ -583,15 +591,12 @@ class MainActivity : AppCompatActivity() {
                     .position(LatLng(36.0015213728, 117.2966122508))
                     .icon(BitmapDescriptorFactory.fromResource(R.drawable.icon_address_end_orange))
             )
-    //上面这一步则加上起始点的icon
     //上面这一步则加上起始点的icon*/
         val builder = LatLngBounds.Builder()
         latlngs.forEach {
             builder.include(it)
         }
         val bounds = builder.build()
-
-//        LatLngBounds.Builder().include(LatLng(1.0,1.0))
         val cameraUpdate = CameraUpdateFactory.newLatLngBounds(bounds, 100)
         aMap.animateCamera(cameraUpdate, 100L, null as CancelableCallback?)
     }
