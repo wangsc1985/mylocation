@@ -44,6 +44,7 @@ class LocationMediaTimerService : Service() {
         throw UnsupportedOperationException("Not yet implemented")
     }
 
+    var a = 0
     @RequiresApi(Build.VERSION_CODES.M)
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
         try {
@@ -54,7 +55,10 @@ class LocationMediaTimerService : Service() {
 //                        e(newLocation.Address)
                         // 记录到云数据库
                         if((System.currentTimeMillis()-startTimeMillis)/60000>60){
-                            AMapUtil.stopLocationContinue()
+                            stopService(Intent(applicationContext,LocationMediaTimerService::class.java))
+                        }
+                        if(a++>5){
+                            stopService(Intent(applicationContext,LocationMediaTimerService::class.java))
                         }
                         _CloudUtils.updateLocation(applicationContext, phone, newLocation.Latitude, newLocation.Longitude, newLocation.Address, null)
                     }
