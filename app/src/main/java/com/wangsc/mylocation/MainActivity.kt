@@ -1,6 +1,7 @@
 package com.wangsc.mylocation
 
 import android.Manifest
+import android.app.ProgressDialog
 import android.content.DialogInterface
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -37,7 +38,10 @@ import com.wangsc.mylocation.utils.LoadFileUtils
 import com.wangsc.mylocation.utils._CloudUtils
 import com.wangsc.mylocation.utils._Utils
 import kotlinx.android.synthetic.main.activity_main.*
+import okhttp3.internal.wait
 import java.util.*
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.CyclicBarrier
 import kotlin.collections.ArrayList
 
 
@@ -119,6 +123,10 @@ class MainActivity : AppCompatActivity() {
 
 
     val checkedBoxColor = R.color.checked_box
+
+    /**
+     * 队列按钮被选择
+     */
     fun showAllButtonChecked(){
         layout_showAll.setBackgroundResource(checkedBoxColor)
         iv_showAll.setImageResource(R.drawable.people_checked)
@@ -127,6 +135,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * 用户被选择
+     */
     fun userButtonChecked(){
         layout_showAll.setBackgroundColor(Color.TRANSPARENT)
         iv_showAll.setImageResource(R.drawable.people_unchecked)
@@ -139,6 +150,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * 自由模式，用户和队列都不选
+     */
     private fun nothingChecked() {
         layout_showAll.setBackgroundColor(Color.TRANSPARENT)
         users?.forEach {
@@ -146,18 +160,41 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * 分享按钮停止
+     */
     private fun shareButtonOff() {
         layout_share.setBackgroundColor(Color.TRANSPARENT)
         iv_share.setImageResource(R.drawable.share_off)
 //        tv_share.setTextColor(Color.BLACK)
     }
 
+    /**
+     * 分享按钮开启
+     */
     private fun shareButtonOn() {
         layout_share.setBackgroundResource(checkedBoxColor)
         iv_share.setImageResource(R.drawable.share_on)
 //        tv_share.setTextColor(Color.RED)
     }
 
+//    lateinit var loadingDialog:ProgressDialog
+    private fun showLoadingDialog(){
+//                loadingDialog = ProgressDialog(this)
+//                loadingDialog.setMessage("正在加载 . . . ")
+//                loadingDialog.setCancelable(false)
+//                loadingDialog.setCanceledOnTouchOutside(false)
+//                loadingDialog.show()
+    }
+
+    private fun hideLoadingDialog(){
+//        loadingDialog.dismiss()
+    }
+
+
+    /**
+     * 添加用户按钮
+     */
     fun addUserView(name: String, avatarImg: Bitmap, time: String): View {
         val view = View.inflate(this, R.layout.inflate_location_user, null)
         val avatarView = view.findViewById<ImageView>(R.id.iv_avatar)
@@ -181,7 +218,10 @@ class MainActivity : AppCompatActivity() {
         return view
     }
 
-    fun updateUserView(name: String, view: View, time: String) {
+    /**
+     * 刷新用户按钮
+     */
+    fun updateUserView(view: View, time: String) {
         val timeView = view.findViewById<TextView>(R.id.tv_time)
 //        val layoutView = view.findViewById<LinearLayout>(R.id.layout_root)
         runOnUiThread {
@@ -202,6 +242,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         textureMapView.onCreate(savedInstanceState)
 
+        showLoadingDialog()
         val sha1 = Abc.sHA1(this)
         e(sha1)
         _Utils.log2file("run","SHA1",sha1)
@@ -274,7 +315,9 @@ class MainActivity : AppCompatActivity() {
     private fun initView(dc: DataContext) {
         try {
             initMap()
-            initMarks()
+            Thread({
+                initMarks()
+            }).start()
 
             startTimer()
             showAllButtonChecked()
@@ -320,10 +363,12 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) {
             e(e.message!!)
         }
+
     }
     fun moveMarks() {
         _CloudUtils.getLocations(this, teamCode, object : CloudCallback {
             override fun excute(code: Int, result: Any?) {
+                hideLoadingDialog()
                 if (code == 0) {
                     try {
                         var models = result as MutableList<User>
@@ -356,11 +401,11 @@ class MainActivity : AppCompatActivity() {
                                         var time = ""
                                         time = span2time(span)
                                         if (user.locationMarker != null && user.avatarMarker != null) {
-                                            updateUserView(user.name, user.view, time)
+                                            updateUserView( user.view, time)
                                             moveMarker(user.locationMarker, it.latitude, it.longitude)
                                             moveMarker(user.avatarMarker, it.latitude, it.longitude)
                                         }
-                                        break;
+                                        break
                                     }
                                 } catch (e: Exception) {
                                     e(e.message!!)
@@ -397,7 +442,7 @@ class MainActivity : AppCompatActivity() {
             time1 = "${span / (60 * 60)}小时前"
         } else if (span > 60) {
             time1 = "${span / 60}分钟前"
-        } else if (span > 10) {
+        } else if (span > 20) {
             time1 = "${span}秒前"
         } else {
             time1 = "实时"
@@ -429,8 +474,8 @@ class MainActivity : AppCompatActivity() {
                                 latlngs.add(LatLng(it.latitude, it.longitude))
 
 
-                                var avatarUrl = "";
-//                                val latcha = CountDownLatch(1)
+                                var avatarUrl = ""
+                                val cb = CyclicBarrier(2)
                                 _CloudUtils.getDownLoadPath(this@MainActivity, it.avatar, CloudCallback { code, result ->
                                     try {
                                         if (code == 0) {
@@ -448,10 +493,11 @@ class MainActivity : AppCompatActivity() {
                                             }
                                         }
                                     } finally {
-//                                        latcha.countDown()
+                                        cb.await()
                                     }
                                 })
-//                                latcha.wait()
+
+                                cb.await()
                             } catch (e: Exception) {
                                 e(e.message!!)
                             }
@@ -486,7 +532,7 @@ class MainActivity : AppCompatActivity() {
                 override fun run() {
                     moveMarks()
                 }
-            }, 5000, 5000)
+            }, 10000, 10000)
         } catch (e: Exception) {
             e(e.message!!)
         }
@@ -512,7 +558,8 @@ class MainActivity : AppCompatActivity() {
                 .snippet("")
                 .position(LatLng(latitude, longitude))
         )
-//        locationMarker.showInfoWindow()
+//        locationMar
+//        ker.showInfoWindow()
 //        if (isCenterCamera) {
 //            aMap.animateCamera(CameraUpdateFactory.newCameraPosition(CameraPosition(LatLng(latitude, longitude), zoom, 0f, 0f)), 100, null)
 //        }
@@ -528,7 +575,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun addAvatarMarkers(profileImg: Bitmap, latitude: Double, longitude: Double): Marker {
         val avatarImg = BitmapDescriptorFactory.fromBitmap(ImageUtils.toRoundBitmap(BitmapDescriptorFactory.fromBitmap(profileImg).bitmap))
-        var avatarMarker = aMap.addMarker(MarkerOptions().anchor(0.5f, 1.2f).icon(avatarImg).position(LatLng(latitude, longitude)))
+        var avatarMarker = aMap.addMarker(MarkerOptions().anchor(0.5f, 1.16f).icon(avatarImg).position(LatLng(latitude, longitude)))
         return avatarMarker
     }
 

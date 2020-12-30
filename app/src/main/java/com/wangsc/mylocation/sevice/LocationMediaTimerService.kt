@@ -20,6 +20,8 @@ class LocationMediaTimerService : Service() {
     private lateinit var mPlayer: MediaPlayer
     private var wakeLock:PowerManager.WakeLock?=null
 
+    var startTimeMillis:Long = 0
+
 
     fun playMeida() {
         try {
@@ -45,11 +47,15 @@ class LocationMediaTimerService : Service() {
     @RequiresApi(Build.VERSION_CODES.M)
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
         try {
+            startTimeMillis=System.currentTimeMillis()
             AMapUtil.getLocationContinue(applicationContext, "屏幕解锁",
                 object : AMapUtil.LocationCallBack {
                     override fun OnLocationedListener(newLocation: Location) {
 //                        e(newLocation.Address)
                         // 记录到云数据库
+                        if((System.currentTimeMillis()-startTimeMillis)/60000>60){
+                            AMapUtil.stopLocationContinue()
+                        }
                         _CloudUtils.updateLocation(applicationContext, phone, newLocation.Latitude, newLocation.Longitude, newLocation.Address, null)
                     }
                 })

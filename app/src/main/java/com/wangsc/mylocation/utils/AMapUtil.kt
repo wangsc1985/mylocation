@@ -104,7 +104,7 @@ object AMapUtil {
             locationOption.httpTimeOut = 30000 //可选，设置网络请求超时时间。默认为30秒。在仅设备模式下无效
             locationOption.isOnceLocation = false //可选，设置是否单次定位。默认是false
             locationOption.isOnceLocationLatest = true //可选，设置是否等待wifi刷新，默认为false.如果设置为true,会自动变为单次定位，持续定位时不要使用
-            locationOption.interval = 5000
+            locationOption.interval = 10000
             locationClient?.setLocationOption(locationOption)
             locationClient?.enableBackgroundLocation(2001, buildNotification(context))
 
@@ -193,7 +193,6 @@ object AMapUtil {
 //    }
 
 
-    private const val NOTIFICATION_CHANNEL_NAME = "BackgroundLocation"
     private var notificationManager: NotificationManager? = null
     var isCreateChannel = false
 
@@ -207,7 +206,7 @@ object AMapUtil {
                 notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager?
             }
             if (!isCreateChannel) {
-                val notificationChannel = NotificationChannel( "chanel_mylocation", NOTIFICATION_CHANNEL_NAME, NotificationManager.IMPORTANCE_DEFAULT )
+                val notificationChannel = NotificationChannel( "chanel_mylocation", "后台定位", NotificationManager.IMPORTANCE_DEFAULT )
                 notificationChannel.enableLights(true) //是否在桌面icon右上角展示小圆点
                 notificationChannel.lightColor = Color.BLUE //小圆点颜色
                 notificationChannel.setShowBadge(true) //是否在久按桌面图标时显示此渠道的通知

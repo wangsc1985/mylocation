@@ -126,6 +126,7 @@ object _CloudUtils {
     fun getLocations(context: Context, teamCode: String, callback: CloudCallback?) {
         newMsgCount = 0
 
+        e("get location ...")
         val a = System.currentTimeMillis()
         val accessToken = getToken(context)
 
@@ -133,6 +134,8 @@ object _CloudUtils {
         val url = "https://api.weixin.qq.com/tcb/invokecloudfunction?access_token=$accessToken&env=$env&name=getLocation"
         val args: MutableList<PostArgument> = ArrayList()
         args.add(PostArgument("teamkey", teamCode))
+
+//        Thread.sleep(10000)
 
         postRequestByJson(url, args, HttpCallback { html ->
             try {
@@ -159,7 +162,7 @@ object _CloudUtils {
                 callback?.excute(-2, e.message)
             }
             val b = System.currentTimeMillis()
-//            e("从微信数据库获取位置，时间间隔：${b - a}")
+            e("从微信数据库获取位置，时间间隔：${b - a}")
         })
     }
 
