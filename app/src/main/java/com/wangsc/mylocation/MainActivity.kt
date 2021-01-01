@@ -519,9 +519,13 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
+    override fun onStop() {
+        super.onStop()
+        timer.cancel()
+    }
+
     override fun onDestroy() {
         super.onDestroy()
-        timer.cancel()
     }
 
     lateinit var timer: Timer
