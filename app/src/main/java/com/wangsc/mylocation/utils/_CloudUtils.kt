@@ -17,7 +17,7 @@ import kotlin.collections.ArrayList
 
 object _CloudUtils {
     private var newMsgCount = 0
-    private val env = "weizhao-8g92xew132e140ba"
+    private val env = "saha-9g1un0sebba3b8c6"
     private val appid = "wxb7d4c0ace04910ed"
     private val secret = "cc7cc71d838f5b2045a17de11e5a90a1"
 
@@ -133,7 +133,7 @@ object _CloudUtils {
         // 通过accessToken，env，云函数名，args 在微信小程序云端获取数据
         val url = "https://api.weixin.qq.com/tcb/invokecloudfunction?access_token=$accessToken&env=$env&name=getLocation"
         val args: MutableList<PostArgument> = ArrayList()
-        args.add(PostArgument("teamkey", teamCode))
+        args.add(PostArgument("teamcode", teamCode))
 
 //        Thread.sleep(10000)
 

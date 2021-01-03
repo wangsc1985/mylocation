@@ -44,7 +44,6 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.CyclicBarrier
 import kotlin.collections.ArrayList
 
-
 class MainActivity : AppCompatActivity() {
     private val MY_PERMISSIONS_REQUEST: Int = 100
     private var locationIsOn = false
@@ -236,7 +235,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -256,6 +254,10 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onResume() {
+        startTimer()
+        super.onResume()
+    }
     private fun isNotifyAllowed(): Boolean {
         val manager = NotificationManagerCompat.from(this)
         // areNotificationsEnabled方法的有效性官方只最低支持到API 19，低于19的仍可调用此方法不过只会返回true，即默认为用户已经开启了通知。
@@ -319,7 +321,6 @@ class MainActivity : AppCompatActivity() {
                 initMarks()
             }).start()
 
-            startTimer()
             showAllButtonChecked()
 
             if (_Utils.isRunService(this, "com.wangsc.mylocation.sevice.LocationMediaTimerService")) {
