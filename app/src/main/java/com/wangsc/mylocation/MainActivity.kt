@@ -1,7 +1,6 @@
 package com.wangsc.mylocation
 
 import android.Manifest
-import android.app.ProgressDialog
 import android.content.DialogInterface
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -38,9 +37,7 @@ import com.wangsc.mylocation.utils.LoadFileUtils
 import com.wangsc.mylocation.utils._CloudUtils
 import com.wangsc.mylocation.utils._Utils
 import kotlinx.android.synthetic.main.activity_main.*
-import okhttp3.internal.wait
 import java.util.*
-import java.util.concurrent.CountDownLatch
 import java.util.concurrent.CyclicBarrier
 import kotlin.collections.ArrayList
 
@@ -126,24 +123,24 @@ class MainActivity : AppCompatActivity() {
     /**
      * 队列按钮被选择
      */
-    fun showAllButtonChecked(){
+    fun showAllButtonChecked() {
         layout_showAll.setBackgroundResource(checkedBoxColor)
         iv_showAll.setImageResource(R.drawable.people_checked)
         users?.forEach {
-                it.view.findViewById<LinearLayout>(R.id.layout_root).setBackgroundColor(Color.TRANSPARENT)
+            it.view.findViewById<LinearLayout>(R.id.layout_root).setBackgroundColor(Color.TRANSPARENT)
         }
     }
 
     /**
      * 用户被选择
      */
-    fun userButtonChecked(){
+    fun userButtonChecked() {
         layout_showAll.setBackgroundColor(Color.TRANSPARENT)
         iv_showAll.setImageResource(R.drawable.people_unchecked)
         users?.forEach {
-            if(it.name==targetUserName){
+            if (it.name == targetUserName) {
                 it.view.findViewById<LinearLayout>(R.id.layout_root).setBackgroundResource(checkedBoxColor)
-            }else{
+            } else {
                 it.view.findViewById<LinearLayout>(R.id.layout_root).setBackgroundColor(Color.TRANSPARENT)
             }
         }
@@ -177,8 +174,8 @@ class MainActivity : AppCompatActivity() {
 //        tv_share.setTextColor(Color.RED)
     }
 
-//    lateinit var loadingDialog:ProgressDialog
-    private fun showLoadingDialog(){
+    //    lateinit var loadingDialog:ProgressDialog
+    private fun showLoadingDialog() {
 //                loadingDialog = ProgressDialog(this)
 //                loadingDialog.setMessage("正在加载 . . . ")
 //                loadingDialog.setCancelable(false)
@@ -186,7 +183,7 @@ class MainActivity : AppCompatActivity() {
 //                loadingDialog.show()
     }
 
-    private fun hideLoadingDialog(){
+    private fun hideLoadingDialog() {
 //        loadingDialog.dismiss()
     }
 
@@ -243,7 +240,7 @@ class MainActivity : AppCompatActivity() {
         showLoadingDialog()
         val sha1 = Abc.sHA1(this)
         e(sha1)
-        _Utils.log2file("run","SHA1",sha1)
+        _Utils.log2file("run", "SHA1", sha1)
 
         /**
          * 如果全部权限授权通过，直接运行初始化方法。
@@ -258,6 +255,7 @@ class MainActivity : AppCompatActivity() {
         startTimer()
         super.onResume()
     }
+
     private fun isNotifyAllowed(): Boolean {
         val manager = NotificationManagerCompat.from(this)
         // areNotificationsEnabled方法的有效性官方只最低支持到API 19，低于19的仍可调用此方法不过只会返回true，即默认为用户已经开启了通知。
@@ -328,31 +326,13 @@ class MainActivity : AppCompatActivity() {
                 locationIsOn = true
             }
             layout_share.setOnClickListener {
-                if (!isNotifyAllowed()) {
-                    openNotifySetting()
-                }else{
-                    if (!locationIsOn) {
-                        startService(Intent(this, LocationMediaTimerService::class.java))
-                        shareButtonOn()
-                        locationIsOn = true
-                    } else {
-                        stopService(Intent(this, LocationMediaTimerService::class.java))
-                        shareButtonOff()
-                        locationIsOn = false
-                    }
-                }
+                startShareLocation(true)
             }
             layout_share.setOnLongClickListener {
-                val view = View.inflate(this, R.layout.dialog_team, null)
-                val phoneView = view.findViewById<EditText>(R.id.et_phone)
-                val teamCodeView = view.findViewById<EditText>(R.id.et_teamCode)
-                AlertDialog.Builder(this).setTitle("用户信息").setIcon(android.R.drawable.ic_dialog_info)
-                    .setView(view).setPositiveButton("确定", DialogInterface.OnClickListener { dialog, which ->
-                        phone = phoneView.text.toString()
-                        teamCode = teamCodeView.text.toString()
-                        dc.editSetting(Setting.KEYS.phone, phone)
-                        dc.editSetting(Setting.KEYS.team_code, teamCode)
-                    }).setNegativeButton("取消", null).show();
+                AlertDialog.Builder(this).setMessage("本次开启位置分享后不会自动关闭，请记得手动关闭。是否继续？").setNegativeButton("是",{
+                    dialog, which ->
+                    startShareLocation(false)
+                }).setPositiveButton("否",null).show()
                 true
             }
 
@@ -361,11 +341,45 @@ class MainActivity : AppCompatActivity() {
                 moveMarks()
                 showAllButtonChecked()
             }
+            layout_showAll.setOnLongClickListener {
+                val view = View.inflate(this, R.layout.dialog_team, null)
+                val phoneView = view.findViewById<EditText>(R.id.et_phone)
+                val teamCodeView = view.findViewById<EditText>(R.id.et_teamCode)
+                phoneView.setText(dc.getSetting(Setting.KEYS.phone)?.string)
+                teamCodeView.setText(dc.getSetting(Setting.KEYS.team_code)?.string)
+                AlertDialog.Builder(this).setTitle("用户信息").setIcon(android.R.drawable.ic_dialog_info).setView(view).setPositiveButton("确定", DialogInterface.OnClickListener
+                { dialog, which ->
+                    phone = phoneView.text.toString()
+                    teamCode = teamCodeView.text.toString()
+                    dc.editSetting(Setting.KEYS.phone, phone)
+                    dc.editSetting(Setting.KEYS.team_code, teamCode)
+                }).setNegativeButton("取消", null).show();
+                true
+            }
         } catch (e: Exception) {
             e(e.message!!)
         }
 
     }
+
+    private fun startShareLocation(isAutoClose:Boolean) {
+        if (!isNotifyAllowed()) {
+            openNotifySetting()
+        } else {
+            val intent = Intent(this, LocationMediaTimerService::class.java)
+            if (!locationIsOn) {
+                intent.putExtra("isAutoClose",isAutoClose)
+                startService(intent)
+                shareButtonOn()
+                locationIsOn = true
+            } else {
+                stopService(intent)
+                shareButtonOff()
+                locationIsOn = false
+            }
+        }
+    }
+
     fun moveMarks() {
         _CloudUtils.getLocations(this, teamCode, object : CloudCallback {
             override fun excute(code: Int, result: Any?) {
@@ -402,7 +416,7 @@ class MainActivity : AppCompatActivity() {
                                         var time = ""
                                         time = span2time(span)
                                         if (user.locationMarker != null && user.avatarMarker != null) {
-                                            updateUserView( user.view, time)
+                                            updateUserView(user.view, time)
                                             moveMarker(user.locationMarker, it.latitude, it.longitude)
                                             moveMarker(user.avatarMarker, it.latitude, it.longitude)
                                         }

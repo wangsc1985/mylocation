@@ -5,7 +5,6 @@ import android.content.Intent
 import android.media.MediaPlayer
 import android.os.Build
 import android.os.IBinder
-import android.os.PowerManager
 import androidx.annotation.RequiresApi
 import com.wangsc.mylocation.R
 import com.wangsc.mylocation.e
@@ -18,7 +17,7 @@ import com.wangsc.mylocation.utils._Utils
 class LocationMediaTimerService : Service() {
 
     private lateinit var mPlayer: MediaPlayer
-    private var wakeLock:PowerManager.WakeLock?=null
+    private  var isAutoClose=true
 
     var startTimeMillis:Long = 0
 
@@ -48,13 +47,15 @@ class LocationMediaTimerService : Service() {
     @RequiresApi(Build.VERSION_CODES.M)
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
         try {
+            isAutoClose = intent.getBooleanExtra("isAutoClose",true)
+            e("location is auto close : $isAutoClose")
             startTimeMillis=System.currentTimeMillis()
             AMapUtil.getLocationContinue(applicationContext, "屏幕解锁",
                 object : AMapUtil.LocationCallBack {
                     override fun OnLocationedListener(newLocation: Location) {
 //                        e(newLocation.Address)
                         // 记录到云数据库
-                        if((System.currentTimeMillis()-startTimeMillis)/60000>60){
+                        if(!isAutoClose&&(System.currentTimeMillis()-startTimeMillis)/60000>60){
                             stopSelf()
                         }
                         _CloudUtils.updateLocation(applicationContext, phone, newLocation.Latitude, newLocation.Longitude, newLocation.Address, null)
