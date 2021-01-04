@@ -55,7 +55,7 @@ class LocationMediaTimerService : Service() {
 //                        e(newLocation.Address)
                         // 记录到云数据库
                         if((System.currentTimeMillis()-startTimeMillis)/60000>60){
-                            stopService(Intent(applicationContext,LocationMediaTimerService::class.java))
+                            stopSelf()
                         }
                         _CloudUtils.updateLocation(applicationContext, phone, newLocation.Latitude, newLocation.Longitude, newLocation.Address, null)
                     }
