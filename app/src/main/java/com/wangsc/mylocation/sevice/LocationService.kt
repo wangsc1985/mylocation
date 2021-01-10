@@ -14,7 +14,10 @@ import com.wangsc.mylocation.utils.AMapUtil
 import com.wangsc.mylocation.utils._CloudUtils
 import com.wangsc.mylocation.utils._Utils
 
-class LocationMediaTimerService : Service() {
+/**
+ * 服务常住的方法：MediaPlayer循环，Notification通知
+ */
+class LocationService : Service() {
 
     private lateinit var mPlayer: MediaPlayer
     private  var isAutoClose=true
@@ -55,7 +58,7 @@ class LocationMediaTimerService : Service() {
                     override fun OnLocationedListener(newLocation: Location) {
 //                        e(newLocation.Address)
                         // 记录到云数据库
-                        if(!isAutoClose&&(System.currentTimeMillis()-startTimeMillis)/60000>60){
+                        if(isAutoClose&&(System.currentTimeMillis()-startTimeMillis)/60000>60){
                             stopSelf()
                         }
                         _CloudUtils.updateLocation(applicationContext, phone, newLocation.Latitude, newLocation.Longitude, newLocation.Address, null)

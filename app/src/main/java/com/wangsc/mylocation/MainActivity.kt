@@ -31,7 +31,7 @@ import com.wangsc.mylocation.callbacks.CloudCallback
 import com.wangsc.mylocation.models.DataContext
 import com.wangsc.mylocation.models.Setting
 import com.wangsc.mylocation.models.User
-import com.wangsc.mylocation.sevice.LocationMediaTimerService
+import com.wangsc.mylocation.sevice.LocationService
 import com.wangsc.mylocation.utils.ImageUtils
 import com.wangsc.mylocation.utils.LoadFileUtils
 import com.wangsc.mylocation.utils._CloudUtils
@@ -123,7 +123,7 @@ class MainActivity : AppCompatActivity() {
     /**
      * 队列按钮被选择
      */
-    fun showAllButtonChecked() {
+    fun teamMode() {
         layout_showAll.setBackgroundResource(checkedBoxColor)
         iv_showAll.setImageResource(R.drawable.people_checked)
         users?.forEach {
@@ -134,7 +134,7 @@ class MainActivity : AppCompatActivity() {
     /**
      * 用户被选择
      */
-    fun userButtonChecked() {
+    fun userMode() {
         layout_showAll.setBackgroundColor(Color.TRANSPARENT)
         iv_showAll.setImageResource(R.drawable.people_unchecked)
         users?.forEach {
@@ -149,7 +149,7 @@ class MainActivity : AppCompatActivity() {
     /**
      * 自由模式，用户和队列都不选
      */
-    private fun nothingChecked() {
+    private fun freeMode() {
         layout_showAll.setBackgroundColor(Color.TRANSPARENT)
         users?.forEach {
             it.view.findViewById<LinearLayout>(R.id.layout_root).setBackgroundColor(Color.TRANSPARENT)
@@ -162,7 +162,6 @@ class MainActivity : AppCompatActivity() {
     private fun shareButtonOff() {
         layout_share.setBackgroundColor(Color.TRANSPARENT)
         iv_share.setImageResource(R.drawable.share_off)
-//        tv_share.setTextColor(Color.BLACK)
     }
 
     /**
@@ -171,7 +170,6 @@ class MainActivity : AppCompatActivity() {
     private fun shareButtonOn() {
         layout_share.setBackgroundResource(checkedBoxColor)
         iv_share.setImageResource(R.drawable.share_on)
-//        tv_share.setTextColor(Color.RED)
     }
 
     //    lateinit var loadingDialog:ProgressDialog
@@ -191,7 +189,7 @@ class MainActivity : AppCompatActivity() {
     /**
      * 添加用户按钮
      */
-    fun addUserView(name: String, avatarImg: Bitmap, time: String): View {
+    fun addUserView(name: String, avatarImg: Bitmap, time: String,teamName: String): View {
         val view = View.inflate(this, R.layout.inflate_location_user, null)
         val avatarView = view.findViewById<ImageView>(R.id.iv_avatar)
         val timeView = view.findViewById<TextView>(R.id.tv_time)
@@ -200,14 +198,14 @@ class MainActivity : AppCompatActivity() {
             targetUserName = name
             showType = 1
             moveMarks()
-
-            userButtonChecked()
+            userMode()
         }
 
         avatarView.setImageBitmap(avatarImg)
 
 
         runOnUiThread {
+            tv_team.setText(teamName)
             timeView.setText(time)
             layout_users.addView(view)
         }
@@ -217,10 +215,11 @@ class MainActivity : AppCompatActivity() {
     /**
      * 刷新用户按钮
      */
-    fun updateUserView(view: View, time: String) {
+    fun updateUserView(view: View, time: String,teamName:String) {
         val timeView = view.findViewById<TextView>(R.id.tv_time)
 //        val layoutView = view.findViewById<LinearLayout>(R.id.layout_root)
         runOnUiThread {
+            tv_team.setText(teamName)
 //            if (showType == 1) {
 //                if (name == targetUserName) {
 //                    layoutView.setBackgroundColor(Color.GRAY)
@@ -319,7 +318,7 @@ class MainActivity : AppCompatActivity() {
                 initMarks()
             }).start()
 
-            showAllButtonChecked()
+            teamMode()
 
             if (_Utils.isRunService(this, "com.wangsc.mylocation.sevice.LocationMediaTimerService")) {
                 shareButtonOn()
@@ -329,17 +328,17 @@ class MainActivity : AppCompatActivity() {
                 startShareLocation(true)
             }
             layout_share.setOnLongClickListener {
-                AlertDialog.Builder(this).setMessage("本次开启位置分享后不会自动关闭，请记得手动关闭。是否继续？").setNegativeButton("是",{
+                AlertDialog.Builder(this).setMessage("本次开启位置分享后不会自动关闭，请记得手动关闭。").setNegativeButton("继续",{
                     dialog, which ->
                     startShareLocation(false)
-                }).setPositiveButton("否",null).show()
+                }).setPositiveButton("退出",null).show()
                 true
             }
 
             layout_showAll.setOnClickListener {
                 showType = 2
                 moveMarks()
-                showAllButtonChecked()
+                teamMode()
             }
             layout_showAll.setOnLongClickListener {
                 val view = View.inflate(this, R.layout.dialog_team, null)
@@ -366,16 +365,18 @@ class MainActivity : AppCompatActivity() {
         if (!isNotifyAllowed()) {
             openNotifySetting()
         } else {
-            val intent = Intent(this, LocationMediaTimerService::class.java)
+            val intent = Intent(this, LocationService::class.java)
             if (!locationIsOn) {
                 intent.putExtra("isAutoClose",isAutoClose)
                 startService(intent)
                 shareButtonOn()
                 locationIsOn = true
             } else {
-                stopService(intent)
-                shareButtonOff()
-                locationIsOn = false
+                AlertDialog.Builder(this).setMessage("是否停止位置分享？").setPositiveButton("是", DialogInterface.OnClickListener { dialog, which ->
+                    stopService(intent)
+                    shareButtonOff()
+                    locationIsOn = false
+                }).setNegativeButton("否",null).show()
             }
         }
     }
@@ -410,13 +411,14 @@ class MainActivity : AppCompatActivity() {
                                         user.latitude = it.latitude
                                         user.longitude = it.longitude
                                         user.locationTime = it.locationTime
+                                        user.teamName = it.teamName
 //                                        e("${it.locationTime.toShortTimeString()}  ${it.name}\t[ ${it.latitude} , ${it.longitude} ]")
 
                                         val span = (System.currentTimeMillis() - it.locationTime.timeInMillis) / 1000
                                         var time = ""
                                         time = span2time(span)
                                         if (user.locationMarker != null && user.avatarMarker != null) {
-                                            updateUserView(user.view, time)
+                                            updateUserView(user.view, time,user.teamName)
                                             moveMarker(user.locationMarker, it.latitude, it.longitude)
                                             moveMarker(user.avatarMarker, it.latitude, it.longitude)
                                         }
@@ -502,7 +504,7 @@ class MainActivity : AppCompatActivity() {
                                                 var time = ""
                                                 time = span2time(span)
 
-                                                it.view = addUserView(it.name, avatar, time)
+                                                it.view = addUserView(it.name, avatar, time,it.teamName)
                                                 it.locationMarker = addLocationMarkers(it.locationTime.toTimeString(), it.sex, it.latitude, it.longitude)
                                                 it.avatarMarker = addAvatarMarkers(avatar, it.latitude, it.longitude)
                                             }
@@ -562,7 +564,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var mUiSettings: UiSettings
     private lateinit var centerPoint: Point
     private lateinit var locationMarker: Marker
-    private var zoom = 17f
+    private var zoom = 15f
     private lateinit var locationClient: AMapLocationClient
     private lateinit var accuracyCircle: Circle
     private lateinit var searchCircle: Circle
@@ -625,39 +627,14 @@ class MainActivity : AppCompatActivity() {
         locationClient = AMapLocationClient(this)
         aMap.setOnMapTouchListener {
             showType = 0
-            nothingChecked()
+            freeMode()
+            zoom = aMap.cameraPosition.zoom
         }
+
     }
 
 
     private fun updateBounds(latlngs: MutableList<LatLng>) {
-        /*  val latLngs: MutableList<LatLng> = ArrayList()
-
-            latLngs.add(LatLng(36.5333737316, 117.5162532850))
-            latLngs.add(LatLng(36.5333737316, 117.5162532850))
-            latLngs.add(LatLng(36.0015213728, 117.2966122508))
-            latLngs.add(LatLng(36.0015213728, 117.2966122508))
-            aMap.addPolyline(
-                PolylineOptions()
-                    .addAll(latLngs)
-                    .width(55f)
-                    .zIndex(1f)
-                    .setCustomTexture(BitmapDescriptorFactory.fromResource(R.drawable.bg_route_gray))
-                    .color(Color.argb(255, 1, 1, 1))
-            )
-    //上面这一步已完成画线
-            aMap.addMarker(
-                MarkerOptions()
-                    .position(LatLng(36.5333737316, 117.5162532850))
-                    .icon(BitmapDescriptorFactory.fromResource(R.drawable.icon_address_start_blue))
-            )
-
-            aMap.addMarker(
-                MarkerOptions()
-                    .position(LatLng(36.0015213728, 117.2966122508))
-                    .icon(BitmapDescriptorFactory.fromResource(R.drawable.icon_address_end_orange))
-            )
-    //上面这一步则加上起始点的icon*/
         val builder = LatLngBounds.Builder()
         latlngs.forEach {
             builder.include(it)

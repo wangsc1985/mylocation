@@ -14,11 +14,12 @@ class User {
     var latitude:Double
     var longitude:Double
     var locationTime: DateTime
+    var teamName:String
     lateinit var locationMarker: Marker
     lateinit var avatarMarker:Marker
     lateinit var view: View
 
-    constructor(name: String,nick:String,sex:Int,avatar:String,address:String,phone:String,latitude:Double,longitude:Double,locationTime: DateTime){
+    constructor(name: String,nick:String,sex:Int,avatar:String,address:String,phone:String,latitude:Double,longitude:Double,locationTime: DateTime,teamName:String){
         this.name = name
         this.nick = nick
         this.sex = sex
@@ -28,15 +29,6 @@ class User {
         this.latitude = latitude
         this.longitude = longitude
         this.locationTime = locationTime
-    }
-
-    init {
-        name=""
-        nick=""
-        avatar = ""
-        address=""
-        latitude=1.0
-        longitude=1.0
-        locationTime= DateTime()
+        this.teamName = teamName
     }
 }

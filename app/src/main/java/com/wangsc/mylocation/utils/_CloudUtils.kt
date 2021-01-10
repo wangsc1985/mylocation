@@ -6,6 +6,7 @@ import com.wangsc.mylocation.utils._OkHttpUtil.getRequest
 import com.wangsc.mylocation.utils._OkHttpUtil.postRequestByJson
 import com.wangsc.mylocation.callbacks.CloudCallback
 import com.wangsc.mylocation.callbacks.HttpCallback
+import com.wangsc.mylocation.e
 import com.wangsc.mylocation.models.DataContext
 import com.wangsc.mylocation.models.DateTime
 import com.wangsc.mylocation.models.PostArgument
@@ -21,8 +22,7 @@ object _CloudUtils {
     private val appid = "wxb7d4c0ace04910ed"
     private val secret = "cc7cc71d838f5b2045a17de11e5a90a1"
 
-    @JvmStatic
-    fun getToken(context: Context): String {
+    private fun getToken(context: Context): String {
         val dc = DataContext(context)
         val setting = dc.getSetting("token_exprires")
         if (setting != null) {
@@ -55,8 +55,6 @@ object _CloudUtils {
                 val data = html.split(":")
                 if (data.size == 2) {
                     token = data[0]
-                    e(data[1].toDouble())
-                    e(data[1].toDouble().toLong())
                     val exprires = data[1].toDouble().toLong()
 
                     // 将新获取的token及exprires存入本地数据库
@@ -99,7 +97,6 @@ object _CloudUtils {
         })
     }
 
-    @JvmStatic
     fun addLocation(context: Context, phone: String, latitude: Double, longitude: Double, address: String, callback: CloudCallback?) {
         newMsgCount = 0
 
@@ -141,7 +138,7 @@ object _CloudUtils {
             try {
                 val users: MutableList<User> = ArrayList()
                 val resp_data: Any = _JsonUtils.getValueByKey(html, "resp_data")
-//                e(resp_data.toString())
+                e(resp_data.toString())
                 val jsonArray = JSONArray(resp_data.toString())
                 for (i in 0..jsonArray.length() - 1) {
                     val jsonObject = jsonArray.getString(i)
@@ -154,7 +151,8 @@ object _CloudUtils {
                     val latitude = _JsonUtils.getValueByKey(jsonObject, "latitude").toDouble()
                     val longitude = _JsonUtils.getValueByKey(jsonObject, "longitude").toDouble()
                     val locationTime = DateTime(_JsonUtils.getValueByKey(jsonObject, "locationTime").toLong())
-                    users.add(User(name, nick,sex, avatar, address,phone, latitude, longitude, locationTime))
+                    val teamName = _JsonUtils.getValueByKey(jsonObject, "teamname").toString()
+                    users.add(User(name, nick,sex, avatar, address,phone, latitude, longitude, locationTime,teamName))
                 }
                 callback?.excute(0, users)
             } catch (e: Exception) {
@@ -192,9 +190,5 @@ object _CloudUtils {
             e(e.message!!)
             callback?.excute(-2, e.message)
         }
-    }
-
-    private fun e(data: Any) {
-        Log.e("wangsc", data.toString())
     }
 }
