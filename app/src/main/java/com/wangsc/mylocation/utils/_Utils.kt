@@ -10,6 +10,8 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.AudioManager
+import android.media.SoundPool
 import android.net.ConnectivityManager
 import android.os.Build
 import android.os.Environment
@@ -22,6 +24,7 @@ import android.util.Log
 import android.view.View
 import android.widget.Toast
 import com.wangsc.mylocation.MainActivity
+import com.wangsc.mylocation.R
 import com.wangsc.mylocation.e
 import com.wangsc.mylocation.models.DateTime
 import com.wangsc.mylocation.utils._Session.ROOT_DIR
@@ -145,6 +148,21 @@ object _Utils {
                 }
             }
         })
+    }
+
+    private val soundPool =  SoundPool(10, AudioManager.STREAM_SYSTEM, 5)
+    private var isSoundPoolLoadComplete=false
+
+    fun playSound(context: Context) {
+        if(isSoundPoolLoadComplete){
+            soundPool.play (1, 1f, 1f, 0, 0, 1f)
+        }else{
+            soundPool.load(context, R.raw.bi, 1)
+            soundPool.setOnLoadCompleteListener { soundPool, sampleId, status ->
+                isSoundPoolLoadComplete=true
+                soundPool.play (1, 1f, 1f, 0, 0, 1f)
+            }
+        }
     }
 
     fun speaker(

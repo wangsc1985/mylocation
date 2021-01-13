@@ -89,7 +89,7 @@ object _CloudUtils {
         args.add(PostArgument("address", address))
         postRequestByJson(url, args, HttpCallback { html ->
             try {
-                e("update location html : $html")
+                e("update location result : $html")
                 callback?.excute(0, html)
             } catch (e: Exception) {
                 callback?.excute(-2, e.message)
@@ -123,7 +123,6 @@ object _CloudUtils {
     fun getLocations(context: Context, teamCode: String, callback: CloudCallback?) {
         newMsgCount = 0
 
-        e("get location ...")
         val a = System.currentTimeMillis()
         val accessToken = getToken(context)
 
@@ -132,13 +131,10 @@ object _CloudUtils {
         val args: MutableList<PostArgument> = ArrayList()
         args.add(PostArgument("teamcode", teamCode))
 
-//        Thread.sleep(10000)
-
         postRequestByJson(url, args, HttpCallback { html ->
             try {
                 val users: MutableList<User> = ArrayList()
                 val resp_data: Any = _JsonUtils.getValueByKey(html, "resp_data")
-                e(resp_data.toString())
                 val jsonArray = JSONArray(resp_data.toString())
                 for (i in 0..jsonArray.length() - 1) {
                     val jsonObject = jsonArray.getString(i)
@@ -160,7 +156,7 @@ object _CloudUtils {
                 callback?.excute(-2, e.message)
             }
             val b = System.currentTimeMillis()
-            e("从微信数据库获取位置，时间间隔：${b - a}")
+            e("get location execute duration(ms) ：${b - a}")
         })
     }
 

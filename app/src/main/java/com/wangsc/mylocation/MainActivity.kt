@@ -50,7 +50,6 @@ class MainActivity : AppCompatActivity() {
 
     //region 动态权限申请
     var permissions = arrayOf(
-//        Manifest.permission.WAKE_LOCK,
         Manifest.permission.ACCESS_COARSE_LOCATION,
         Manifest.permission.ACCESS_FINE_LOCATION,
         Manifest.permission.ACCESS_NETWORK_STATE,
@@ -215,19 +214,15 @@ class MainActivity : AppCompatActivity() {
     /**
      * 刷新用户按钮
      */
-    fun updateUserView(view: View, time: String,teamName:String) {
-        val timeView = view.findViewById<TextView>(R.id.tv_time)
-//        val layoutView = view.findViewById<LinearLayout>(R.id.layout_root)
+    fun updateUserView(user: User) {
+        val timeView = user.view.findViewById<TextView>(R.id.tv_time)
         runOnUiThread {
-            tv_team.setText(teamName)
-//            if (showType == 1) {
-//                if (name == targetUserName) {
-//                    layoutView.setBackgroundColor(Color.GRAY)
-//                } else {
-//                    layoutView.setBackgroundColor(Color.TRANSPARENT)
-//                }
-//            }
-            timeView.setText(time)
+            tv_team.setText(user.teamName)
+            val span = (System.currentTimeMillis() - user.locationTime.timeInMillis) / 1000
+            if (showType == 1&&user.name == targetUserName&&span>20) {
+                _Utils.playSound(this)
+            }
+            timeView.setText(span2time(span))
         }
     }
 
@@ -320,7 +315,7 @@ class MainActivity : AppCompatActivity() {
 
             teamMode()
 
-            if (_Utils.isRunService(this, "com.wangsc.mylocation.sevice.LocationMediaTimerService")) {
+            if (_Utils.isRunService(this, LocationService::class.qualifiedName!!)) {
                 shareButtonOn()
                 locationIsOn = true
             }
@@ -390,7 +385,6 @@ class MainActivity : AppCompatActivity() {
                         var models = result as MutableList<User>
                         var latlngs: MutableList<LatLng> = ArrayList()
                         var myLatlng: LatLng? = null
-//                        e(models.size)
                         models.forEach {
                             if (targetUserName.isEmpty()) {
                                 if (it.phone == phone) {
@@ -412,15 +406,12 @@ class MainActivity : AppCompatActivity() {
                                         user.longitude = it.longitude
                                         user.locationTime = it.locationTime
                                         user.teamName = it.teamName
-//                                        e("${it.locationTime.toShortTimeString()}  ${it.name}\t[ ${it.latitude} , ${it.longitude} ]")
 
-                                        val span = (System.currentTimeMillis() - it.locationTime.timeInMillis) / 1000
-                                        var time = ""
-                                        time = span2time(span)
                                         if (user.locationMarker != null && user.avatarMarker != null) {
-                                            updateUserView(user.view, time,user.teamName)
-                                            moveMarker(user.locationMarker, it.latitude, it.longitude)
-                                            moveMarker(user.avatarMarker, it.latitude, it.longitude)
+                                            updateUserView(user)
+//                                            moveMarker(user.locationMarker, it.latitude, it.longitude)
+//                                            moveMarker(user.avatarMarker, it.latitude, it.longitude)
+                                            moveMarker(user)
                                         }
                                         break
                                     }
@@ -551,6 +542,18 @@ class MainActivity : AppCompatActivity() {
             timer = Timer()
             timer.schedule(object : TimerTask() {
                 override fun run() {
+                    if (showType == 0) {
+                        showType = preShowType
+                        when (showType) {
+                            // TODO: 2021/1/13
+                            1->{
+                                userMode()
+                            }
+                            2->{
+                                teamMode()
+                            }
+                        }
+                    }
                     moveMarks()
                 }
             }, 10000, 10000)
@@ -600,12 +603,14 @@ class MainActivity : AppCompatActivity() {
         return avatarMarker
     }
 
-    private fun moveMarker(marker: Marker, latitude: Double, longitude: Double) {
-        marker.position = LatLng(latitude, longitude)
+    private fun moveMarker(user:User) {
+        user.locationMarker.position = LatLng(user.latitude, user.longitude)
+        user.avatarMarker.position = LatLng(user.latitude, user.longitude)
 //        marker.title = title
 //        marker.snippet = snippet
     }
 
+    private var preShowType=0
     private fun initMap() {
         /*
          * 设置离线地图存储目录，在下载离线地图或初始化地图设置; 使用过程中可自行设置, 若自行设置了离线地图存储的路径，
@@ -626,13 +631,17 @@ class MainActivity : AppCompatActivity() {
         aMap.setLoadOfflineData(true)
         locationClient = AMapLocationClient(this)
         aMap.setOnMapTouchListener {
+            if(showType!=0){
+                preShowType = showType
+            }
+            timer.cancel()
+            startTimer()
             showType = 0
             freeMode()
             zoom = aMap.cameraPosition.zoom
         }
 
     }
-
 
     private fun updateBounds(latlngs: MutableList<LatLng>) {
         val builder = LatLngBounds.Builder()
