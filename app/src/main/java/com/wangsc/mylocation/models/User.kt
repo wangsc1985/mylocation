@@ -1,8 +1,10 @@
 package com.wangsc.mylocation.models
 
+import android.graphics.Bitmap
+import android.media.Image
 import android.view.View
+import com.amap.api.maps.model.Circle
 import com.amap.api.maps.model.Marker
-import com.wangsc.mylocation.models.DateTime
 
 class User {
     var name:String
@@ -14,12 +16,17 @@ class User {
     var latitude:Double
     var longitude:Double
     var locationTime: DateTime
+    var accuracy:Float //精    度
+    var speed:Float //速    度
+    var bearing:Float //角    度
     var teamName:String
+    lateinit var avatarImg:Bitmap
     lateinit var locationMarker: Marker
     lateinit var avatarMarker:Marker
+    lateinit var accuracyCircle:Circle
     lateinit var view: View
 
-    constructor(name: String,nick:String,sex:Int,avatar:String,address:String,phone:String,latitude:Double,longitude:Double,locationTime: DateTime,teamName:String){
+    constructor(name: String, nick: String, sex: Int, avatar: String, address: String, phone: String, latitude: Double, longitude: Double, locationTime: DateTime,accuracy:Float,speed:Float,bearing:Float,teamName: String){
         this.name = name
         this.nick = nick
         this.sex = sex
@@ -29,6 +36,9 @@ class User {
         this.latitude = latitude
         this.longitude = longitude
         this.locationTime = locationTime
+        this.accuracy = accuracy
+        this.speed = speed
+        this.bearing = bearing
         this.teamName = teamName
     }
 }

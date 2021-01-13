@@ -55,26 +55,26 @@ object AMapUtil {
                             return@AMapLocationListener
                         }
                         val l = Location()
-                        l.Id = UUID.randomUUID()
-                        l.UserId = UUID_NULL
-                        l.Time = location.time
-                        l.Accuracy = location.accuracy
-                        l.AdCode = location.adCode
-                        l.Address = location.address
-                        l.Bearing = location.bearing
-                        l.City = location.city
-                        l.CityCode = location.cityCode
-                        l.Province = location.province
-                        l.Country = location.country
-                        l.District = location.district
-                        l.LocationType = location.locationType
-                        l.Longitude = location.longitude
-                        l.PoiName = location.poiName
-                        l.Latitude = location.latitude
-                        l.Provider = location.provider
-                        l.Speed = location.speed
-                        l.Satellites = location.satellites
-                        l.Summary = summary
+                        l.id = UUID.randomUUID()
+                        l.userId = UUID_NULL
+                        l.time = location.time
+                        l.accuracy = location.accuracy
+                        l.adCode = location.adCode
+                        l.address = location.address
+                        l.bearing = location.bearing
+                        l.city = location.city
+                        l.cityCode = location.cityCode
+                        l.province = location.province
+                        l.country = location.country
+                        l.district = location.district
+                        l.locationType = location.locationType
+                        l.longitude = location.longitude
+                        l.poiName = location.poiName
+                        l.latitude = location.latitude
+                        l.provider = location.provider
+                        l.speed = location.speed
+                        l.satellites = location.satellites
+                        l.summary = summary
                         callBack.OnLocationedListener(l)
                     }
                 }
@@ -113,30 +113,27 @@ object AMapUtil {
                 if (null != location) {
                     //errCode等于0代表定位成功，其他的为定位失败，具体的可以参照官网定位错误码说明
                     if (location.errorCode == 0) {
-                        if (location.accuracy > 100) {
-                            return@AMapLocationListener
-                        }
                         val l = Location()
-                        l.Id = UUID.randomUUID()
-                        l.UserId = UUID_NULL
-                        l.Time = location.time
-                        l.Accuracy = location.accuracy
-                        l.AdCode = location.adCode
-                        l.Address = location.address
-                        l.Bearing = location.bearing
-                        l.City = location.city
-                        l.CityCode = location.cityCode
-                        l.Province = location.province
-                        l.Country = location.country
-                        l.District = location.district
-                        l.LocationType = location.locationType
-                        l.Longitude = location.longitude
-                        l.PoiName = location.poiName
-                        l.Latitude = location.latitude
-                        l.Provider = location.provider
-                        l.Speed = location.speed
-                        l.Satellites = location.satellites
-                        l.Summary = summary
+                        l.id = UUID.randomUUID()
+                        l.userId = UUID_NULL
+                        l.time = location.time //时间
+                        l.accuracy = location.accuracy // 精度
+                        l.adCode = location.adCode
+                        l.address = location.address // 地址
+                        l.bearing = location.bearing // 方向
+                        l.city = location.city
+                        l.cityCode = location.cityCode
+                        l.province = location.province
+                        l.country = location.country
+                        l.district = location.district
+                        l.locationType = location.locationType
+                        l.longitude = location.longitude // 经度
+                        l.poiName = location.poiName
+                        l.latitude = location.latitude // 纬度
+                        l.provider = location.provider
+                        l.speed = location.speed // 速度
+                        l.satellites = location.satellites
+                        l.summary = summary
                         callBack.OnLocationedListener(l)
                     }else{
                         e("高德地图获取位置失败：CODE : ${location.errorCode}")

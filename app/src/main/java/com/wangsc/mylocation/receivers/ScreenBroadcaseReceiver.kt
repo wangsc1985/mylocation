@@ -21,8 +21,8 @@ class ScreenBroadcaseReceiver : BroadcastReceiver() {
                         AMapUtil.getCurrentLocation(context, "屏幕解锁", object : AMapUtil.LocationCallBack {
                             override fun OnLocationedListener(newLocation: Location) {
                                 // 记录到云数据库
-                                e("位置：${newLocation.Address}")
-                                _CloudUtils.addLocation(context,phone, newLocation.Latitude, newLocation.Longitude, newLocation.Address, null)
+                                e("位置：${newLocation.address}")
+                                _CloudUtils.addLocation(context,phone, newLocation, null)
                             }
                         })
                     } catch (e: Exception) {

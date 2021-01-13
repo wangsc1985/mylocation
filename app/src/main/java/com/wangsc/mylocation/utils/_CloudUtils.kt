@@ -1,16 +1,12 @@
 package com.wangsc.mylocation.utils
 
 import android.content.Context
-import android.util.Log
 import com.wangsc.mylocation.utils._OkHttpUtil.getRequest
 import com.wangsc.mylocation.utils._OkHttpUtil.postRequestByJson
 import com.wangsc.mylocation.callbacks.CloudCallback
 import com.wangsc.mylocation.callbacks.HttpCallback
 import com.wangsc.mylocation.e
-import com.wangsc.mylocation.models.DataContext
-import com.wangsc.mylocation.models.DateTime
-import com.wangsc.mylocation.models.PostArgument
-import com.wangsc.mylocation.models.User
+import com.wangsc.mylocation.models.*
 import com.wangsc.mylocation.utils._OkHttpUtil.postRequestByJsonStr
 import org.json.JSONArray
 import java.util.concurrent.CountDownLatch
@@ -76,17 +72,21 @@ object _CloudUtils {
         return token
     }
 
-    fun updateLocation(context: Context, phone: String, latitude: Double, longitude: Double, address: String, callback: CloudCallback?) {
-        newMsgCount = 0
+    fun updateLocation(context: Context, phone: String, location: Location, callback: CloudCallback?) {
+        e("定位延迟: ${(DateTime().timeInMillis- location.time)/1000}秒； 精度： ${location.accuracy}米")
+
         val accessToken = getToken(context)
         // 通过accessToken，env，云函数名，args 在微信小程序云端获取数据
         val url = "https://api.weixin.qq.com/tcb/invokecloudfunction?access_token=$accessToken&env=$env&name=updateLocation"
         val args: MutableList<PostArgument> = ArrayList()
         args.add(PostArgument("phone", phone))
-        args.add(PostArgument("date", System.currentTimeMillis()))
-        args.add(PostArgument("latitude", latitude))
-        args.add(PostArgument("longitude", longitude))
-        args.add(PostArgument("address", address))
+        args.add(PostArgument("date", DateTime().timeInMillis))
+        args.add(PostArgument("latitude", location.latitude))
+        args.add(PostArgument("longitude", location.longitude))
+        args.add(PostArgument("address", location.address))
+        args.add(PostArgument("accuracy", location.accuracy))
+        args.add(PostArgument("bearing", location.bearing))
+        args.add(PostArgument("speed", location.speed))
         postRequestByJson(url, args, HttpCallback { html ->
             try {
                 e("update location result : $html")
@@ -97,7 +97,7 @@ object _CloudUtils {
         })
     }
 
-    fun addLocation(context: Context, phone: String, latitude: Double, longitude: Double, address: String, callback: CloudCallback?) {
+    fun addLocation(context: Context, phone: String, location: Location, callback: CloudCallback?) {
         newMsgCount = 0
 
         val accessToken = getToken(context)
@@ -106,10 +106,13 @@ object _CloudUtils {
 //                    e(url)
         val args: MutableList<PostArgument> = ArrayList()
         args.add(PostArgument("phone", phone))
-        args.add(PostArgument("date", System.currentTimeMillis()))
-        args.add(PostArgument("latitude", latitude))
-        args.add(PostArgument("longitude", longitude))
-        args.add(PostArgument("address", address))
+        args.add(PostArgument("date", DateTime().timeInMillis))
+        args.add(PostArgument("latitude", location.latitude))
+        args.add(PostArgument("longitude", location.longitude))
+        args.add(PostArgument("address", location.address))
+        args.add(PostArgument("accuracy", location.accuracy))
+        args.add(PostArgument("bearing", location.bearing))
+        args.add(PostArgument("speed", location.speed))
 
         postRequestByJson(url, args, HttpCallback { html ->
             try {
@@ -140,15 +143,18 @@ object _CloudUtils {
                     val jsonObject = jsonArray.getString(i)
                     val name = _JsonUtils.getValueByKey(jsonObject, "name").toString()
                     val avatar = _JsonUtils.getValueByKey(jsonObject, "avatar").toString()
-                    val sex =  _JsonUtils.getValueByKey(jsonObject, "sex").toInt()
+                    val sex = _JsonUtils.getValueByKey(jsonObject, "sex").toInt()
                     val nick = _JsonUtils.getValueByKey(jsonObject, "nick").toString()
                     val address = _JsonUtils.getValueByKey(jsonObject, "address").toString()
                     val phone = _JsonUtils.getValueByKey(jsonObject, "phone").toString()
                     val latitude = _JsonUtils.getValueByKey(jsonObject, "latitude").toDouble()
                     val longitude = _JsonUtils.getValueByKey(jsonObject, "longitude").toDouble()
                     val locationTime = DateTime(_JsonUtils.getValueByKey(jsonObject, "locationTime").toLong())
+                    val accuracy = _JsonUtils.getValueByKey(jsonObject, "accuracy").toFloat()
+                    val bearing = _JsonUtils.getValueByKey(jsonObject, "bearing").toFloat()
+                    val speed = _JsonUtils.getValueByKey(jsonObject, "speed").toFloat()
                     val teamName = _JsonUtils.getValueByKey(jsonObject, "teamname").toString()
-                    users.add(User(name, nick,sex, avatar, address,phone, latitude, longitude, locationTime,teamName))
+                    users.add(User(name, nick, sex, avatar, address, phone, latitude, longitude, locationTime,accuracy,speed,bearing, teamName))
                 }
                 callback?.excute(0, users)
             } catch (e: Exception) {

@@ -8,28 +8,28 @@ import java.util.UUID;
 
 public class Location {
 
-    public UUID Id;
-    public UUID UserId;
+    public UUID id;
+    public UUID userId;
 
-    public int LocationType; //定位类型
-    public double Longitude; //经    度
-    public double Latitude; //纬    度
-    public float Accuracy; //精    度
-    public String Provider; //提供者
+    public int locationType; //定位类型
+    public double longitude; //经    度
+    public double latitude; //纬    度
+    public String provider; //提供者
 
-    public float Speed; //速    度
-    public float Bearing; //角    度
+    public float accuracy; //精    度
+    public float speed; //速    度
+    public float bearing; //角    度
 
-    public int Satellites; //星    数
-    public String Country; //国    家
-    public String Province; //省
-    public String City; //市
-    public String CityCode; //城市编码
-    public String District; //区
-    public String AdCode; //区域 码
-    public String Address; //地    址
-    public String PoiName; //兴趣点
+    public int satellites; //星    数
+    public String country; //国    家
+    public String province; //省
+    public String city; //市
+    public String cityCode; //城市编码
+    public String district; //区
+    public String adCode; //区域 码
+    public String address; //地    址
+    public String poiName; //兴趣点
 
-    public long Time; // 定位时间
-    public String Summary;
+    public long time; // 定位时间
+    public String summary;
 }

@@ -8,11 +8,16 @@ import android.os.IBinder
 import androidx.annotation.RequiresApi
 import com.wangsc.mylocation.R
 import com.wangsc.mylocation.e
+import com.wangsc.mylocation.models.DateTime
 import com.wangsc.mylocation.models.Location
+import com.wangsc.mylocation.models.LocationState
+import com.wangsc.mylocation.models.MessageWrap
 import com.wangsc.mylocation.phone
 import com.wangsc.mylocation.utils.AMapUtil
 import com.wangsc.mylocation.utils._CloudUtils
 import com.wangsc.mylocation.utils._Utils
+import org.greenrobot.eventbus.EventBus
+import java.text.DecimalFormat
 
 /**
  * 服务常住的方法：MediaPlayer循环，Notification通知
@@ -20,9 +25,9 @@ import com.wangsc.mylocation.utils._Utils
 class LocationService : Service() {
 
     private lateinit var mPlayer: MediaPlayer
-    private  var isAutoClose=true
+    private var isAutoClose = true
 
-    var startTimeMillis:Long = 0
+    var startTimeMillis: Long = 0
 
 
     fun playMeida() {
@@ -36,7 +41,8 @@ class LocationService : Service() {
             _Utils.printException(applicationContext, e)
         }
     }
-    fun stopMedia(){
+
+    fun stopMedia() {
 //        _Utils.releaseWakeLock(applicationContext,wakeLock)
         mPlayer.stop()
         mPlayer.release()
@@ -47,26 +53,36 @@ class LocationService : Service() {
     }
 
     var a = 0
+
     @RequiresApi(Build.VERSION_CODES.M)
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
         try {
-            isAutoClose = intent.getBooleanExtra("isAutoClose",true)
-            e("location is auto close : $isAutoClose")
-            startTimeMillis=System.currentTimeMillis()
+            EventBus.getDefault().post(LocationState.getInstance(true))
+            isAutoClose = intent.getBooleanExtra("isAutoClose", true)
+            startTimeMillis = System.currentTimeMillis()
             AMapUtil.getLocationContinue(applicationContext, "屏幕解锁",
                 object : AMapUtil.LocationCallBack {
                     override fun OnLocationedListener(newLocation: Location) {
-//                        e(newLocation.Address)
+                        e(newLocation.address)
                         // 记录到云数据库
-                        if(isAutoClose&&(System.currentTimeMillis()-startTimeMillis)/60000>60){
+                        if (isAutoClose && (System.currentTimeMillis() - startTimeMillis) / 60000 > 60) {
                             stopSelf()
                         }
-                        _CloudUtils.updateLocation(applicationContext, phone, newLocation.Latitude, newLocation.Longitude, newLocation.Address, null)
+                        EventBus.getDefault().post(
+                            MessageWrap.getInstance(
+                                "${(DateTime().timeInMillis - newLocation.time) / 1000}s  " +
+                                        "${DecimalFormat("0").format(newLocation.accuracy)}m  " +
+                                        "${DecimalFormat("0").format(newLocation.speed)}m/s  " +
+                                        "${DecimalFormat("0.0").format(newLocation.bearing)}^"
+                            )
+                        )
+                        _CloudUtils.updateLocation(applicationContext, phone, newLocation, null)
                     }
                 })
             playMeida()
         } catch (e: Exception) {
             _Utils.printException(applicationContext, e)
+            e(e.message!!)
         }
         return super.onStartCommand(intent, flags, startId)
     }
@@ -79,6 +95,7 @@ class LocationService : Service() {
     override fun onDestroy() {
         try {
             e("service destory")
+            EventBus.getDefault().post(LocationState.getInstance(false))
             stopMedia()
 
             AMapUtil.stopLocationContinue()

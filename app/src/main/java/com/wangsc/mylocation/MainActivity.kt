@@ -4,7 +4,6 @@ import android.Manifest
 import android.content.DialogInterface
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.Point
@@ -28,18 +27,20 @@ import com.amap.api.maps.model.*
 import com.amap.api.maps.model.LatLngBounds
 import com.amap.api.services.share.ShareSearch
 import com.wangsc.mylocation.callbacks.CloudCallback
-import com.wangsc.mylocation.models.DataContext
-import com.wangsc.mylocation.models.Setting
-import com.wangsc.mylocation.models.User
+import com.wangsc.mylocation.models.*
 import com.wangsc.mylocation.sevice.LocationService
 import com.wangsc.mylocation.utils.ImageUtils
 import com.wangsc.mylocation.utils.LoadFileUtils
 import com.wangsc.mylocation.utils._CloudUtils
 import com.wangsc.mylocation.utils._Utils
 import kotlinx.android.synthetic.main.activity_main.*
+import org.greenrobot.eventbus.EventBus
+import org.greenrobot.eventbus.Subscribe
+import org.greenrobot.eventbus.ThreadMode
 import java.util.*
 import java.util.concurrent.CyclicBarrier
 import kotlin.collections.ArrayList
+
 
 class MainActivity : AppCompatActivity() {
     private val MY_PERMISSIONS_REQUEST: Int = 100
@@ -116,7 +117,6 @@ class MainActivity : AppCompatActivity() {
     }
     //endregion
 
-
     val checkedBoxColor = R.color.checked_box
 
     /**
@@ -184,31 +184,31 @@ class MainActivity : AppCompatActivity() {
 //        loadingDialog.dismiss()
     }
 
-
     /**
      * 添加用户按钮
      */
-    fun addUserView(name: String, avatarImg: Bitmap, time: String,teamName: String): View {
+    fun addUserView(user: User) {
         val view = View.inflate(this, R.layout.inflate_location_user, null)
         val avatarView = view.findViewById<ImageView>(R.id.iv_avatar)
         val timeView = view.findViewById<TextView>(R.id.tv_time)
 
         avatarView.setOnClickListener {
-            targetUserName = name
+            targetUserName = user.name
             showType = 1
             moveMarks()
             userMode()
         }
 
-        avatarView.setImageBitmap(avatarImg)
+        avatarView.setImageBitmap(user.avatarImg)
 
 
+        val span = (System.currentTimeMillis() - user.locationTime.timeInMillis) / 1000
         runOnUiThread {
-            tv_team.setText(teamName)
-            timeView.setText(time)
+            tv_team.setText(user.teamName)
+            timeView.setText(span2time(span))
             layout_users.addView(view)
         }
-        return view
+        user.view = view
     }
 
     /**
@@ -219,22 +219,34 @@ class MainActivity : AppCompatActivity() {
         runOnUiThread {
             tv_team.setText(user.teamName)
             val span = (System.currentTimeMillis() - user.locationTime.timeInMillis) / 1000
-            if (showType == 1&&user.name == targetUserName&&span>20) {
+            if (showType == 1 && user.name == targetUserName && span > 20) {
                 _Utils.playSound(this)
             }
             timeView.setText(span2time(span))
         }
     }
 
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    fun onGetMessage(message: MessageWrap) {
+        tv_info.visibility=View.VISIBLE
+        tv_info.setText(message.message)
+    }
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    fun onGetMessage(state: LocationState) {
+        if(!state.state){
+            tv_info.visibility=View.INVISIBLE
+        }
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         textureMapView.onCreate(savedInstanceState)
+        EventBus.getDefault().register(this)
 
         showLoadingDialog()
-        val sha1 = Abc.sHA1(this)
-        e(sha1)
-        _Utils.log2file("run", "SHA1", sha1)
+//        val sha1 = Abc.sHA1(this)
+//        e(sha1)
+//        _Utils.log2file("run", "SHA1", sha1)
 
         /**
          * 如果全部权限授权通过，直接运行初始化方法。
@@ -323,10 +335,9 @@ class MainActivity : AppCompatActivity() {
                 startShareLocation(true)
             }
             layout_share.setOnLongClickListener {
-                AlertDialog.Builder(this).setMessage("本次开启位置分享后不会自动关闭，请记得手动关闭。").setNegativeButton("继续",{
-                    dialog, which ->
+                AlertDialog.Builder(this).setMessage("本次开启位置分享后不会自动关闭，请记得手动关闭。").setNegativeButton("继续", { dialog, which ->
                     startShareLocation(false)
-                }).setPositiveButton("退出",null).show()
+                }).setPositiveButton("退出", null).show()
                 true
             }
 
@@ -356,13 +367,13 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-    private fun startShareLocation(isAutoClose:Boolean) {
+    private fun startShareLocation(isAutoClose: Boolean) {
         if (!isNotifyAllowed()) {
             openNotifySetting()
         } else {
             val intent = Intent(this, LocationService::class.java)
             if (!locationIsOn) {
-                intent.putExtra("isAutoClose",isAutoClose)
+                intent.putExtra("isAutoClose", isAutoClose)
                 startService(intent)
                 shareButtonOn()
                 locationIsOn = true
@@ -371,7 +382,7 @@ class MainActivity : AppCompatActivity() {
                     stopService(intent)
                     shareButtonOff()
                     locationIsOn = false
-                }).setNegativeButton("否",null).show()
+                }).setNegativeButton("否", null).show()
             }
         }
     }
@@ -386,31 +397,32 @@ class MainActivity : AppCompatActivity() {
                         var latlngs: MutableList<LatLng> = ArrayList()
                         var myLatlng: LatLng? = null
                         models.forEach {
+                            val netUser = it
                             if (targetUserName.isEmpty()) {
-                                if (it.phone == phone) {
-                                    targetUserName = it.name
-                                    myLatlng = LatLng(it.latitude, it.longitude)
+                                if (netUser.phone == phone) {
+                                    targetUserName = netUser.name
+                                    myLatlng = LatLng(netUser.latitude, netUser.longitude)
                                 }
                             } else {
-                                if (targetUserName == it.name) {
-                                    myLatlng = LatLng(it.latitude, it.longitude)
+                                if (targetUserName == netUser.name) {
+                                    myLatlng = LatLng(netUser.latitude, netUser.longitude)
                                 }
                             }
-                            latlngs.add(LatLng(it.latitude, it.longitude))
-                            for (i in 0..users!!.size) {
+                            latlngs.add(LatLng(netUser.latitude, netUser.longitude))
+                            for (i in users!!.indices) {
                                 try {
                                     var user = users!![i]
-                                    if (user.name == it.name) {
-                                        user.address = it.address
-                                        user.latitude = it.latitude
-                                        user.longitude = it.longitude
-                                        user.locationTime = it.locationTime
-                                        user.teamName = it.teamName
+                                    if (user.name == netUser.name) {
+                                        user.address = netUser.address
+                                        user.latitude = netUser.latitude
+                                        user.longitude = netUser.longitude
+                                        user.locationTime = netUser.locationTime
+                                        user.teamName = netUser.teamName
 
                                         if (user.locationMarker != null && user.avatarMarker != null) {
                                             updateUserView(user)
-//                                            moveMarker(user.locationMarker, it.latitude, it.longitude)
-//                                            moveMarker(user.avatarMarker, it.latitude, it.longitude)
+//                                            moveMarker(user.locationMarker, netUser.latitude, netUser.longitude)
+//                                            moveMarker(user.avatarMarker, netUser.latitude, netUser.longitude)
                                             moveMarker(user)
                                         }
                                         break
@@ -469,35 +481,32 @@ class MainActivity : AppCompatActivity() {
 
                         users?.forEach {
                             try {
+                                var netUser = it
+                                e("user name ： ${netUser.name}")
                                 if (targetUserName.isEmpty()) {
-                                    if (it.phone == phone) {
-                                        targetUserName = it.name
-                                        myLatlng = LatLng(it.latitude, it.longitude)
+                                    if (netUser.phone == phone) {
+                                        targetUserName = netUser.name
+                                        myLatlng = LatLng(netUser.latitude, netUser.longitude)
                                     }
                                 } else {
-                                    if (targetUserName == it.name) {
-                                        myLatlng = LatLng(it.latitude, it.longitude)
+                                    if (targetUserName == netUser.name) {
+                                        myLatlng = LatLng(netUser.latitude, netUser.longitude)
                                     }
                                 }
-                                latlngs.add(LatLng(it.latitude, it.longitude))
+                                latlngs.add(LatLng(netUser.latitude, netUser.longitude))
 
 
                                 var avatarUrl = ""
                                 val cb = CyclicBarrier(2)
-                                _CloudUtils.getDownLoadPath(this@MainActivity, it.avatar, CloudCallback { code, result ->
+                                _CloudUtils.getDownLoadPath(this@MainActivity, netUser.avatar, CloudCallback { code, result ->
                                     try {
                                         if (code == 0) {
                                             avatarUrl = result.toString()
-                                            var url = LoadFileUtils.loadFileFromHttp(avatarUrl, "${it.name}.jpg")
+                                            var url = LoadFileUtils.loadFileFromHttp(avatarUrl, "${netUser.name}.jpg")
                                             if (!url.isEmpty()) {
-                                                val avatar = BitmapFactory.decodeFile(url)
-                                                val span = (System.currentTimeMillis() - it.locationTime.timeInMillis) / 1000
-                                                var time = ""
-                                                time = span2time(span)
-
-                                                it.view = addUserView(it.name, avatar, time,it.teamName)
-                                                it.locationMarker = addLocationMarkers(it.locationTime.toTimeString(), it.sex, it.latitude, it.longitude)
-                                                it.avatarMarker = addAvatarMarkers(avatar, it.latitude, it.longitude)
+                                                netUser.avatarImg = BitmapFactory.decodeFile(url)
+                                                addUserView(netUser)
+                                                addMarkers(netUser)
                                             }
                                         }
                                     } finally {
@@ -534,6 +543,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        EventBus.getDefault().unregister(this);
     }
 
     lateinit var timer: Timer
@@ -546,10 +556,10 @@ class MainActivity : AppCompatActivity() {
                         showType = preShowType
                         when (showType) {
                             // TODO: 2021/1/13
-                            1->{
+                            1 -> {
                                 userMode()
                             }
-                            2->{
+                            2 -> {
                                 teamMode()
                             }
                         }
@@ -565,52 +575,37 @@ class MainActivity : AppCompatActivity() {
     //endregion
     private lateinit var aMap: AMap
     private lateinit var mUiSettings: UiSettings
-    private lateinit var centerPoint: Point
-    private lateinit var locationMarker: Marker
+//    private lateinit var locationClient: AMapLocationClient
     private var zoom = 15f
-    private lateinit var locationClient: AMapLocationClient
-    private lateinit var accuracyCircle: Circle
-    private lateinit var searchCircle: Circle
-    private lateinit var mShareSearch: ShareSearch
 
-    private fun addLocationMarkers(title: String, sex: Int, latitude: Double, longitude: Double): Marker {
-//        northMarker = aMap.addMarker(new MarkerOptions().anchor(0.5f, 0.5f).icon(BitmapDescriptorFactory.fromBitmap(BitmapFactory.decodeResource(getResources(), R.drawable.north))).position(center));
-        var locationMarker = aMap.addMarker(
+    private fun addMarkers(user: User) {
+        user.locationMarker = aMap.addMarker(
             MarkerOptions().anchor(0.5f, 1.0f)
-                .icon(BitmapDescriptorFactory.fromBitmap(BitmapFactory.decodeResource(resources, if (sex == 1) R.drawable.point_a else R.drawable.point_b)))
-                .title(title)
-                .snippet("")
-                .position(LatLng(latitude, longitude))
+                .icon(BitmapDescriptorFactory.fromBitmap(BitmapFactory.decodeResource(resources, if (user.sex == 1) R.drawable.point_a else R.drawable.point_b)))
+                .position(LatLng(user.latitude, user.longitude))
         )
-//        locationMar
-//        ker.showInfoWindow()
-//        if (isCenterCamera) {
-//            aMap.animateCamera(CameraUpdateFactory.newCameraPosition(CameraPosition(LatLng(latitude, longitude), zoom, 0f, 0f)), 100, null)
-//        }
-        return locationMarker
-//        accuracyCircle = aMap.addCircle(
-//            CircleOptions()
-//                .center(LatLng(latitude,longitude))
-//                .radius(0.0)
-//                .fillColor(resources.getColor(R.color.location_accuracy))
-//                .strokeWidth(0f)
-//        )
+
+        val avatarImg = BitmapDescriptorFactory.fromBitmap(ImageUtils.toRoundBitmap(BitmapDescriptorFactory.fromBitmap(user.avatarImg).bitmap))
+        user.avatarMarker = aMap.addMarker(MarkerOptions().anchor(0.5f, 1.16f).icon(avatarImg).position(LatLng(user.latitude, user.longitude)))
+
+        user.accuracyCircle = aMap.addCircle(
+            CircleOptions()
+                .center(LatLng(user.latitude,user.longitude))
+                .radius(0.0)
+                .fillColor(resources.getColor(R.color.location_accuracy))
+                .strokeWidth(0f)
+        )
     }
 
-    private fun addAvatarMarkers(profileImg: Bitmap, latitude: Double, longitude: Double): Marker {
-        val avatarImg = BitmapDescriptorFactory.fromBitmap(ImageUtils.toRoundBitmap(BitmapDescriptorFactory.fromBitmap(profileImg).bitmap))
-        var avatarMarker = aMap.addMarker(MarkerOptions().anchor(0.5f, 1.16f).icon(avatarImg).position(LatLng(latitude, longitude)))
-        return avatarMarker
+    private fun moveMarker(user: User) {
+        val latlng = LatLng(user.latitude, user.longitude)
+        user.locationMarker.position = latlng
+        user.avatarMarker.position = latlng
+        user.accuracyCircle.center = latlng
+        user.accuracyCircle.radius = user.accuracy.toDouble()
     }
 
-    private fun moveMarker(user:User) {
-        user.locationMarker.position = LatLng(user.latitude, user.longitude)
-        user.avatarMarker.position = LatLng(user.latitude, user.longitude)
-//        marker.title = title
-//        marker.snippet = snippet
-    }
-
-    private var preShowType=0
+    private var preShowType = 0
     private fun initMap() {
         /*
          * 设置离线地图存储目录，在下载离线地图或初始化地图设置; 使用过程中可自行设置, 若自行设置了离线地图存储的路径，
@@ -629,9 +624,9 @@ class MainActivity : AppCompatActivity() {
         mUiSettings.setScaleControlsEnabled(true) // 比例尺
         aMap.setMyLocationEnabled(false) // 是否可触发定位并显示定位层
         aMap.setLoadOfflineData(true)
-        locationClient = AMapLocationClient(this)
+//        locationClient = AMapLocationClient(this)
         aMap.setOnMapTouchListener {
-            if(showType!=0){
+            if (showType != 0) {
                 preShowType = showType
             }
             timer.cancel()
