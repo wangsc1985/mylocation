@@ -23,7 +23,9 @@
             style="@style/Widget.AppCompat.AutoCompleteTextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:background="@android:drawable/editbox_background_normal"
             android:layout_weight="1"
+            android:textColor="@color/black"
             android:ems="10"
             android:inputType="phone" />
     </LinearLayout>
@@ -45,7 +47,9 @@
             style="@style/Widget.AppCompat.AutoCompleteTextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:background="@android:drawable/editbox_background_normal"
             android:layout_weight="1"
+            android:textColor="@color/black"
             android:ems="10"
             android:inputType="phone" />
     </LinearLayout>

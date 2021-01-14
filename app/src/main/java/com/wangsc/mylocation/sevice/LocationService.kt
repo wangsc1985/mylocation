@@ -11,7 +11,7 @@ import com.wangsc.mylocation.e
 import com.wangsc.mylocation.models.DateTime
 import com.wangsc.mylocation.models.Location
 import com.wangsc.mylocation.models.LocationState
-import com.wangsc.mylocation.models.MessageWrap
+import com.wangsc.mylocation.models.LocationMessage
 import com.wangsc.mylocation.phone
 import com.wangsc.mylocation.utils.AMapUtil
 import com.wangsc.mylocation.utils._CloudUtils
@@ -68,12 +68,13 @@ class LocationService : Service() {
                         if (isAutoClose && (System.currentTimeMillis() - startTimeMillis) / 60000 > 60) {
                             stopSelf()
                         }
+                        val delay = (DateTime().timeInMillis - newLocation.time) / 1000
                         EventBus.getDefault().post(
-                            MessageWrap.getInstance(
-                                "${(DateTime().timeInMillis - newLocation.time) / 1000}s  " +
+                            LocationMessage.getInstance(delay,newLocation.accuracy,
+                                "${delay}s  " +
                                         "${DecimalFormat("0").format(newLocation.accuracy)}m  " +
                                         "${DecimalFormat("0").format(newLocation.speed)}m/s  " +
-                                        "${DecimalFormat("0.0").format(newLocation.bearing)}^"
+                                        "${DecimalFormat("0.0").format(newLocation.bearing)}°"
                             )
                         )
                         _CloudUtils.updateLocation(applicationContext, phone, newLocation, null)

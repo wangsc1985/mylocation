@@ -20,11 +20,30 @@ class User {
     var speed:Float //速    度
     var bearing:Float //角    度
     var teamName:String
-    lateinit var avatarImg:Bitmap
-    lateinit var locationMarker: Marker
-    lateinit var avatarMarker:Marker
-    lateinit var accuracyCircle:Circle
-    lateinit var view: View
+    var avatarImg:Bitmap?=null
+    var locationMarker: Marker?=null
+    var avatarMarker:Marker?=null
+    var accuracyCircle:Circle?=null
+    var view: View?=null
+
+    /**
+     * 设置除avatarImg，locationMarker，avatarMarker，accuracyCircle，view之外的所有属性值
+     */
+    fun setValus(user:User){
+        this.name = user.name
+        this.nick = user.nick
+        this.sex = user.sex
+        this.avatar = user.avatar
+        this.address = user.address
+        this.phone = user.phone
+        this.latitude = user.latitude
+        this.longitude = user.longitude
+        this.locationTime = user.locationTime
+        this.accuracy = user.accuracy
+        this.speed = user.speed
+        this.bearing = user.bearing
+        this.teamName = user.teamName
+    }
 
     constructor(name: String, nick: String, sex: Int, avatar: String, address: String, phone: String, latitude: Double, longitude: Double, locationTime: DateTime,accuracy:Float,speed:Float,bearing:Float,teamName: String){
         this.name = name

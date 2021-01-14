@@ -13,12 +13,12 @@ import java.util.concurrent.CountDownLatch
 import kotlin.collections.ArrayList
 
 object _CloudUtils {
-    private var newMsgCount = 0
     private val env = "saha-9g1un0sebba3b8c6"
     private val appid = "wxb7d4c0ace04910ed"
     private val secret = "cc7cc71d838f5b2045a17de11e5a90a1"
 
     private fun getToken(context: Context): String {
+//        Thread.sleep(10000)
         val dc = DataContext(context)
         val setting = dc.getSetting("token_exprires")
         if (setting != null) {
@@ -97,8 +97,24 @@ object _CloudUtils {
         })
     }
 
+    fun editTeam(context: Context, teamCode: String,teamName:String, callback: CloudCallback?) {
+        val accessToken = getToken(context)
+        // 通过accessToken，env，云函数名，args 在微信小程序云端获取数据
+        val url = "https://api.weixin.qq.com/tcb/invokecloudfunction?access_token=$accessToken&env=$env&name=editTeam"
+        val args: MutableList<PostArgument> = ArrayList()
+        args.add(PostArgument("code", teamCode))
+        args.add(PostArgument("name", teamName))
+        postRequestByJson(url, args, HttpCallback { html ->
+            try {
+                e("edit team result : $html")
+                callback?.excute(0, html)
+            } catch (e: Exception) {
+                callback?.excute(-2, e.message)
+            }
+        })
+    }
+
     fun addLocation(context: Context, phone: String, location: Location, callback: CloudCallback?) {
-        newMsgCount = 0
 
         val accessToken = getToken(context)
         // 通过accessToken，env，云函数名，args 在微信小程序云端获取数据
@@ -124,7 +140,6 @@ object _CloudUtils {
     }
 
     fun getLocations(context: Context, teamCode: String, callback: CloudCallback?) {
-        newMsgCount = 0
 
         val a = System.currentTimeMillis()
         val accessToken = getToken(context)

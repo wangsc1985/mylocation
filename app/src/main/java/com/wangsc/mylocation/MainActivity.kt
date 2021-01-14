@@ -6,10 +6,8 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
 import android.graphics.Color
-import android.graphics.Point
 import android.os.Bundle
 import android.provider.Settings
-import android.util.Log
 import android.view.View
 import android.widget.EditText
 import android.widget.ImageView
@@ -20,12 +18,10 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
-import com.amap.api.location.AMapLocationClient
 import com.amap.api.maps.*
 import com.amap.api.maps.AMap.CancelableCallback
 import com.amap.api.maps.model.*
 import com.amap.api.maps.model.LatLngBounds
-import com.amap.api.services.share.ShareSearch
 import com.wangsc.mylocation.callbacks.CloudCallback
 import com.wangsc.mylocation.models.*
 import com.wangsc.mylocation.sevice.LocationService
@@ -41,13 +37,13 @@ import java.util.*
 import java.util.concurrent.CyclicBarrier
 import kotlin.collections.ArrayList
 
-
 class MainActivity : AppCompatActivity() {
     private val MY_PERMISSIONS_REQUEST: Int = 100
     private var locationIsOn = false
-    private var users: MutableList<User>? = null
+    private var localUserList: MutableList<User>? = null
     private var showType = 2
-    private var targetUserName = ""
+    private var selectedUserName = ""
+    private var currentTeamName = ""
 
     //region 动态权限申请
     var permissions = arrayOf(
@@ -118,29 +114,28 @@ class MainActivity : AppCompatActivity() {
     //endregion
 
     val checkedBoxColor = R.color.checked_box
-
     /**
      * 队列按钮被选择
      */
-    fun teamMode() {
+    private fun teamMode() {
         layout_showAll.setBackgroundResource(checkedBoxColor)
         iv_showAll.setImageResource(R.drawable.people_checked)
-        users?.forEach {
-            it.view.findViewById<LinearLayout>(R.id.layout_root).setBackgroundColor(Color.TRANSPARENT)
+        localUserList?.forEach {
+            it.view?.findViewById<LinearLayout>(R.id.layout_root)?.setBackgroundColor(Color.TRANSPARENT)
         }
     }
 
     /**
      * 用户被选择
      */
-    fun userMode() {
+    private fun userMode() {
         layout_showAll.setBackgroundColor(Color.TRANSPARENT)
         iv_showAll.setImageResource(R.drawable.people_unchecked)
-        users?.forEach {
-            if (it.name == targetUserName) {
-                it.view.findViewById<LinearLayout>(R.id.layout_root).setBackgroundResource(checkedBoxColor)
+        localUserList?.forEach {
+            if (it.name == selectedUserName) {
+                it.view?.findViewById<LinearLayout>(R.id.layout_root)?.setBackgroundResource(checkedBoxColor)
             } else {
-                it.view.findViewById<LinearLayout>(R.id.layout_root).setBackgroundColor(Color.TRANSPARENT)
+                it.view?.findViewById<LinearLayout>(R.id.layout_root)?.setBackgroundColor(Color.TRANSPARENT)
             }
         }
     }
@@ -150,8 +145,8 @@ class MainActivity : AppCompatActivity() {
      */
     private fun freeMode() {
         layout_showAll.setBackgroundColor(Color.TRANSPARENT)
-        users?.forEach {
-            it.view.findViewById<LinearLayout>(R.id.layout_root).setBackgroundColor(Color.TRANSPARENT)
+        localUserList?.forEach {
+            it.view?.findViewById<LinearLayout>(R.id.layout_root)?.setBackgroundColor(Color.TRANSPARENT)
         }
     }
 
@@ -187,24 +182,23 @@ class MainActivity : AppCompatActivity() {
     /**
      * 添加用户按钮
      */
-    fun addUserView(user: User) {
+    private fun addUserView(user: User) {
         val view = View.inflate(this, R.layout.inflate_location_user, null)
         val avatarView = view.findViewById<ImageView>(R.id.iv_avatar)
         val timeView = view.findViewById<TextView>(R.id.tv_time)
 
         avatarView.setOnClickListener {
-            targetUserName = user.name
+            selectedUserName = user.name
             showType = 1
-            moveMarks()
+            moveUserLocation()
             userMode()
         }
 
         avatarView.setImageBitmap(user.avatarImg)
-
-
         val span = (System.currentTimeMillis() - user.locationTime.timeInMillis) / 1000
         runOnUiThread {
             tv_team.setText(user.teamName)
+            currentTeamName = user.teamName
             timeView.setText(span2time(span))
             layout_users.addView(view)
         }
@@ -214,29 +208,38 @@ class MainActivity : AppCompatActivity() {
     /**
      * 刷新用户按钮
      */
-    fun updateUserView(user: User) {
-        val timeView = user.view.findViewById<TextView>(R.id.tv_time)
-        runOnUiThread {
-            tv_team.setText(user.teamName)
-            val span = (System.currentTimeMillis() - user.locationTime.timeInMillis) / 1000
-            if (showType == 1 && user.name == targetUserName && span > 20) {
-                _Utils.playSound(this)
+    private fun updateUserView(user: User) {
+        user.view?.let {view->
+            val timeView = view.findViewById<TextView>(R.id.tv_time)
+            currentTeamName = user.teamName
+            runOnUiThread {
+                tv_team.setText(user.teamName)
+                val span = (System.currentTimeMillis() - user.locationTime.timeInMillis) / 1000
+                if (showType == 1 && user.name == selectedUserName && span > 20) {
+                    _Utils.playSound(this)
+                }
+                timeView.setText(span2time(span))
             }
-            timeView.setText(span2time(span))
         }
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    fun onGetMessage(message: MessageWrap) {
-        tv_info.visibility=View.VISIBLE
-        tv_info.setText(message.message)
-    }
-    @Subscribe(threadMode = ThreadMode.MAIN)
-    fun onGetMessage(state: LocationState) {
-        if(!state.state){
-            tv_info.visibility=View.INVISIBLE
+    fun onGetMessage(message: LocationMessage) {
+        if (message.accuracy > 30 || message.delay > 20) {
+            tv_info.visibility = View.VISIBLE
+            tv_info.setText(message.message)
+        } else {
+            tv_info.visibility = View.INVISIBLE
         }
     }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    fun onGetMessage(state: LocationState) {
+        if (!state.state) {
+            tv_info.visibility = View.INVISIBLE
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -343,28 +346,60 @@ class MainActivity : AppCompatActivity() {
 
             layout_showAll.setOnClickListener {
                 showType = 2
-                moveMarks()
+                moveUserLocation()
                 teamMode()
             }
             layout_showAll.setOnLongClickListener {
-                val view = View.inflate(this, R.layout.dialog_team, null)
-                val phoneView = view.findViewById<EditText>(R.id.et_phone)
-                val teamCodeView = view.findViewById<EditText>(R.id.et_teamCode)
-                phoneView.setText(dc.getSetting(Setting.KEYS.phone)?.string)
-                teamCodeView.setText(dc.getSetting(Setting.KEYS.team_code)?.string)
-                AlertDialog.Builder(this).setTitle("用户信息").setIcon(android.R.drawable.ic_dialog_info).setView(view).setPositiveButton("确定", DialogInterface.OnClickListener
-                { dialog, which ->
-                    phone = phoneView.text.toString()
-                    teamCode = teamCodeView.text.toString()
-                    dc.editSetting(Setting.KEYS.phone, phone)
-                    dc.editSetting(Setting.KEYS.team_code, teamCode)
-                }).setNegativeButton("取消", null).show();
+                if (dc.getSetting(Setting.KEYS.phone) == null) {
+                    loginUserDialog()
+                } else {
+                    AlertDialog.Builder(this).setItems(arrayOf("切换用户", "队伍更名")) { dialog, which ->
+                        when (which) {
+                            0 -> {
+                                loginUserDialog()
+                            }
+                            1 -> {
+                                teamRename()
+                            }
+                        }
+                    }.show()
+                }
                 true
             }
         } catch (e: Exception) {
-            e(e.message!!)
+            e("initView "+e.message!!)
         }
 
+    }
+
+    private fun teamRename() {
+        val dc = DataContext(this)
+        val set = dc.getSetting(Setting.KEYS.team_code)
+        if (set != null) {
+            val view = View.inflate(this, R.layout.inflate_dialog_text, null)
+            val et = view.findViewById<EditText>(R.id.et_value)
+            e("team name : $currentTeamName")
+            et.setText(currentTeamName)
+            AlertDialog.Builder(this).setTitle("队伍更名").setView(view).setNegativeButton("提交", DialogInterface.OnClickListener { dialog, which ->
+                _CloudUtils.editTeam(this, set.string, et.text.toString(), null)
+            }).show()
+        }
+    }
+
+    private fun loginUserDialog() {
+        val dc = DataContext(this)
+        val view = View.inflate(this, R.layout.dialog_team, null)
+        val phoneView = view.findViewById<EditText>(R.id.et_phone)
+        val teamCodeView = view.findViewById<EditText>(R.id.et_teamCode)
+        phoneView.setText(dc.getSetting(Setting.KEYS.phone)?.string)
+        teamCodeView.setText(dc.getSetting(Setting.KEYS.team_code)?.string)
+        AlertDialog.Builder(this).setTitle("用户信息").setView(view).setPositiveButton("提交")
+        { dialog, which ->
+            phone = phoneView.text.toString()
+            teamCode = teamCodeView.text.toString()
+            dc.editSetting(Setting.KEYS.phone, phone)
+            dc.editSetting(Setting.KEYS.team_code, teamCode)
+        }.show();
     }
 
     private fun startShareLocation(isAutoClose: Boolean) {
@@ -387,62 +422,55 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun moveMarks() {
+    private fun moveUserLocation() {
         _CloudUtils.getLocations(this, teamCode, object : CloudCallback {
             override fun excute(code: Int, result: Any?) {
                 hideLoadingDialog()
                 if (code == 0) {
                     try {
-                        var models = result as MutableList<User>
-                        var latlngs: MutableList<LatLng> = ArrayList()
-                        var myLatlng: LatLng? = null
-                        models.forEach {
-                            val netUser = it
-                            if (targetUserName.isEmpty()) {
+                        var netUserList = result as MutableList<User>
+                        var boundsLatlngs: MutableList<LatLng> = ArrayList()
+                        var selectedUserLatlng: LatLng? = null
+                        netUserList.forEach { netUser ->
+                            if (selectedUserName.isEmpty()) {
                                 if (netUser.phone == phone) {
-                                    targetUserName = netUser.name
-                                    myLatlng = LatLng(netUser.latitude, netUser.longitude)
+                                    selectedUserName = netUser.name
+                                    selectedUserLatlng = LatLng(netUser.latitude, netUser.longitude)
                                 }
                             } else {
-                                if (targetUserName == netUser.name) {
-                                    myLatlng = LatLng(netUser.latitude, netUser.longitude)
+                                if (selectedUserName == netUser.name) {
+                                    selectedUserLatlng = LatLng(netUser.latitude, netUser.longitude)
                                 }
                             }
-                            latlngs.add(LatLng(netUser.latitude, netUser.longitude))
-                            for (i in users!!.indices) {
-                                try {
-                                    var user = users!![i]
-                                    if (user.name == netUser.name) {
-                                        user.address = netUser.address
-                                        user.latitude = netUser.latitude
-                                        user.longitude = netUser.longitude
-                                        user.locationTime = netUser.locationTime
-                                        user.teamName = netUser.teamName
-
-                                        if (user.locationMarker != null && user.avatarMarker != null) {
-                                            updateUserView(user)
-//                                            moveMarker(user.locationMarker, netUser.latitude, netUser.longitude)
-//                                            moveMarker(user.avatarMarker, netUser.latitude, netUser.longitude)
-                                            moveMarker(user)
-                                        }
-                                        break
+                            boundsLatlngs.add(LatLng(netUser.latitude, netUser.longitude))
+                            /**
+                             * 因为本地localUserList保存有用户的locationMarker，avatarMarker，accuracyCircle，所以不能将从网络获取的netUserList直接复制给localUserList，那样会覆盖上面三个值，
+                             * 所以只能单个赋值
+                             */
+                            if (localUserList != null) {
+                                var localUser = localUserList!!.firstOrNull {
+                                    it.name==netUser.name
+                                }
+                                if (localUser != null) {
+                                    localUser.setValus(netUser)
+                                    if (localUser.locationMarker != null && localUser.avatarMarker != null && localUser.accuracyCircle != null) {
+                                        updateUserView(localUser)
+                                        moveMarker(localUser)
                                     }
-                                } catch (e: Exception) {
-                                    e(e.message!!)
                                 }
                             }
                         }
 
                         when (showType) {
                             1 -> {
-                                aMap.animateCamera(CameraUpdateFactory.newCameraPosition(CameraPosition(myLatlng, zoom, 0f, 0f)), 100, null)
+                                aMap.animateCamera(CameraUpdateFactory.newCameraPosition(CameraPosition(selectedUserLatlng, zoom, 0f, 0f)), 100, null)
                             }
                             2 -> {
-                                updateBounds(latlngs)
+                                updateBounds(boundsLatlngs)
                             }
                         }
                     } catch (e: Exception) {
-                        e(e.message!!)
+                        e("moveUserLocation "+e.message)
                     }
                 }
             }
@@ -470,43 +498,41 @@ class MainActivity : AppCompatActivity() {
         return time1
     }
 
-    fun initMarks() {
+    private fun initMarks() {
         _CloudUtils.getLocations(this, teamCode, object : CloudCallback {
             override fun excute(code: Int, result: Any?) {
                 if (code == 0) {
                     try {
-                        users = result as MutableList<User>
-                        var latlngs: MutableList<LatLng> = ArrayList()
-                        var myLatlng: LatLng? = null
+                        localUserList = result as MutableList<User>
+                        e("user list size : ${localUserList!!.size}")
+                        var boundsLatlngs: MutableList<LatLng> = ArrayList()
+                        var selectedUserLatlng: LatLng? = null
 
-                        users?.forEach {
+                        localUserList?.forEach { localUser ->
                             try {
-                                var netUser = it
-                                e("user name ： ${netUser.name}")
-                                if (targetUserName.isEmpty()) {
-                                    if (netUser.phone == phone) {
-                                        targetUserName = netUser.name
-                                        myLatlng = LatLng(netUser.latitude, netUser.longitude)
+                                if (selectedUserName.isEmpty()) {
+                                    if (localUser.phone == phone) {
+                                        selectedUserName = localUser.name
+                                        selectedUserLatlng = LatLng(localUser.latitude, localUser.longitude)
                                     }
                                 } else {
-                                    if (targetUserName == netUser.name) {
-                                        myLatlng = LatLng(netUser.latitude, netUser.longitude)
+                                    if (selectedUserName == localUser.name) {
+                                        selectedUserLatlng = LatLng(localUser.latitude, localUser.longitude)
                                     }
                                 }
-                                latlngs.add(LatLng(netUser.latitude, netUser.longitude))
-
+                                boundsLatlngs.add(LatLng(localUser.latitude, localUser.longitude))
 
                                 var avatarUrl = ""
                                 val cb = CyclicBarrier(2)
-                                _CloudUtils.getDownLoadPath(this@MainActivity, netUser.avatar, CloudCallback { code, result ->
+                                _CloudUtils.getDownLoadPath(this@MainActivity, localUser.avatar, CloudCallback { code, result ->
                                     try {
                                         if (code == 0) {
                                             avatarUrl = result.toString()
-                                            var url = LoadFileUtils.loadFileFromHttp(avatarUrl, "${netUser.name}.jpg")
+                                            var url = LoadFileUtils.loadFileFromHttp(avatarUrl, "${localUser.name}.jpg")
                                             if (!url.isEmpty()) {
-                                                netUser.avatarImg = BitmapFactory.decodeFile(url)
-                                                addUserView(netUser)
-                                                addMarkers(netUser)
+                                                localUser.avatarImg = BitmapFactory.decodeFile(url)
+                                                addUserView(localUser)
+                                                addMarkers(localUser)
                                             }
                                         }
                                     } finally {
@@ -516,20 +542,20 @@ class MainActivity : AppCompatActivity() {
 
                                 cb.await()
                             } catch (e: Exception) {
-                                e(e.message!!)
+                                e("initMarks "+e.message!!)
                             }
                         }
 
                         when (showType) {
                             1 -> {
-                                aMap.animateCamera(CameraUpdateFactory.newCameraPosition(CameraPosition(myLatlng, zoom, 0f, 0f)), 100, null)
+                                aMap.animateCamera(CameraUpdateFactory.newCameraPosition(CameraPosition(selectedUserLatlng, zoom, 0f, 0f)), 100, null)
                             }
                             2 -> {
-                                updateBounds(latlngs)
+                                updateBounds(boundsLatlngs)
                             }
                         }
                     } catch (e: Exception) {
-                        e(e.message!!)
+                        e("initMarks "+e.message!!)
                     }
                 }
             }
@@ -564,33 +590,37 @@ class MainActivity : AppCompatActivity() {
                             }
                         }
                     }
-                    moveMarks()
+                    moveUserLocation()
                 }
             }, 10000, 10000)
         } catch (e: Exception) {
-            e(e.message!!)
+            e("startTimer "+e.message!!)
         }
     }
 
     //endregion
     private lateinit var aMap: AMap
     private lateinit var mUiSettings: UiSettings
-//    private lateinit var locationClient: AMapLocationClient
+
+    //    private lateinit var locationClient: AMapLocationClient
     private var zoom = 15f
 
     private fun addMarkers(user: User) {
         user.locationMarker = aMap.addMarker(
-            MarkerOptions().anchor(0.5f, 1.0f)
+            MarkerOptions()
+                .anchor(0.5f, 1.0f)
                 .icon(BitmapDescriptorFactory.fromBitmap(BitmapFactory.decodeResource(resources, if (user.sex == 1) R.drawable.point_a else R.drawable.point_b)))
                 .position(LatLng(user.latitude, user.longitude))
         )
-
-        val avatarImg = BitmapDescriptorFactory.fromBitmap(ImageUtils.toRoundBitmap(BitmapDescriptorFactory.fromBitmap(user.avatarImg).bitmap))
-        user.avatarMarker = aMap.addMarker(MarkerOptions().anchor(0.5f, 1.16f).icon(avatarImg).position(LatLng(user.latitude, user.longitude)))
-
+        user.avatarMarker = aMap.addMarker(
+            MarkerOptions()
+                .anchor(0.5f, 1.16f)
+                .icon(BitmapDescriptorFactory.fromBitmap(ImageUtils.toRoundBitmap(BitmapDescriptorFactory.fromBitmap(user.avatarImg).bitmap)))
+                .position(LatLng(user.latitude, user.longitude))
+        )
         user.accuracyCircle = aMap.addCircle(
             CircleOptions()
-                .center(LatLng(user.latitude,user.longitude))
+                .center(LatLng(user.latitude, user.longitude))
                 .radius(0.0)
                 .fillColor(resources.getColor(R.color.location_accuracy))
                 .strokeWidth(0f)
@@ -598,11 +628,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun moveMarker(user: User) {
-        val latlng = LatLng(user.latitude, user.longitude)
-        user.locationMarker.position = latlng
-        user.avatarMarker.position = latlng
-        user.accuracyCircle.center = latlng
-        user.accuracyCircle.radius = user.accuracy.toDouble()
+        try {
+            val latlng = LatLng(user.latitude, user.longitude)
+            user.locationMarker?.position = latlng
+            user.avatarMarker?.position = latlng
+            user.accuracyCircle?.center = latlng
+            user.accuracyCircle?.radius = user.accuracy.toDouble()
+        } catch (e: Exception) {
+            e("moveMarker : ${e.message}")
+        }
     }
 
     private var preShowType = 0
@@ -611,7 +645,6 @@ class MainActivity : AppCompatActivity() {
          * 设置离线地图存储目录，在下载离线地图或初始化地图设置; 使用过程中可自行设置, 若自行设置了离线地图存储的路径，
          * 则需要在离线地图下载和使用地图页面都进行路径设置
          */
-        Log.e("wangsc", MapsInitializer.sdcardDir)
         aMap = textureMapView.getMap()
         mUiSettings = aMap.getUiSettings()
         mUiSettings.setScrollGesturesEnabled(true) // 设置地图是否可以手势滑动
