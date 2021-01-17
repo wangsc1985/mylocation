@@ -1,7 +1,5 @@
 package com.wangsc.mylocation.utils
 
-import android.os.Environment
-import com.wangsc.mylocation.callbacks.HttpCallback
 import com.wangsc.mylocation.e
 import com.wangsc.mylocation.utils._Session.ROOT_DIR
 import java.io.File
@@ -13,7 +11,7 @@ import java.net.URL
 
 object LoadFileUtils {
     @JvmStatic
-    fun loadFileFromHttp(url: String?, cacheFileName: String?):String {
+    fun loadFileFromHttp(url: String, cacheFileName: String):String {
         val cacheFile = File(ROOT_DIR.absolutePath, cacheFileName)
         if (!cacheFile.exists()) {
             try {
@@ -23,36 +21,26 @@ object LoadFileUtils {
                 e.printStackTrace()
             }
         }
-        var u: URL? = null
-        var rtn = false
+        var uurl: URL? = null
         var output: FileOutputStream? = null
-        var `is`: InputStream? = null
+        var inputStream: InputStream? = null
         try {
-            u = URL(url)
+            uurl = URL(url)
             var connection: HttpURLConnection? = null
-            connection = u.openConnection() as HttpURLConnection
+            connection = uurl.openConnection() as HttpURLConnection
             connection.setRequestProperty("connection", "Keep-Alive")
-            // connection.setRequestMethod("POST");
-            connection!!.useCaches = false
-            // connection.setRequestProperty("Content-Type",
-            // "application/json");
-            // connection.setDoInput(true);
+            connection.useCaches = false
             connection.readTimeout = 5000
             connection.connectTimeout = 5000
             // connection.setDoOutput(true);
             connection.connect()
-            //            if (!TextUtils.isEmpty(content)) {
-//                OutputStream outputStream = connection.getOutputStream();
-//                outputStream.write(content.getBytes());
-//                outputStream.close();
-//            }
             val wdFile = File(cacheFile.path)
             output = FileOutputStream(wdFile)
-            `is` = connection.inputStream
+            inputStream = connection.inputStream
             connection.contentLength
             val data = ByteArray(1024)
             var count = 0
-            while (`is`.read(data).also { count = it } != -1) {
+            while (inputStream.read(data).also { count = it } != -1) {
                 output.write(data, 0, count)
             }
             output.flush()
@@ -60,11 +48,11 @@ object LoadFileUtils {
             e(e.message!!)
         } finally {
             try {
-                if (`is` == null) {
+                if (inputStream == null) {
                     return ""
                 } else {
                     output!!.close()
-                    `is`.close()
+                    inputStream.close()
                 }
             } catch (e: IOException) {
                 e.printStackTrace()

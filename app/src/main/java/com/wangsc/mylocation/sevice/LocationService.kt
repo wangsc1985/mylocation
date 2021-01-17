@@ -5,6 +5,7 @@ import android.content.Intent
 import android.media.MediaPlayer
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
 import androidx.annotation.RequiresApi
 import com.wangsc.mylocation.R
 import com.wangsc.mylocation.e
@@ -24,6 +25,7 @@ import java.text.DecimalFormat
  */
 class LocationService : Service() {
 
+    private var wakeLock:PowerManager.WakeLock?=null
     private lateinit var mPlayer: MediaPlayer
     private var isAutoClose = true
 
@@ -32,7 +34,7 @@ class LocationService : Service() {
 
     fun playMeida() {
         try {
-//            wakeLock = _Utils.acquireWakeLock(applicationContext)
+            wakeLock = _Utils.acquireWakeLock(applicationContext)
             mPlayer = MediaPlayer.create(applicationContext, R.raw.second_30)
             mPlayer.setVolume(0.01f, 0.01f)
             mPlayer.setLooping(true)
@@ -43,7 +45,7 @@ class LocationService : Service() {
     }
 
     fun stopMedia() {
-//        _Utils.releaseWakeLock(applicationContext,wakeLock)
+        _Utils.releaseWakeLock(applicationContext,wakeLock)
         mPlayer.stop()
         mPlayer.release()
     }

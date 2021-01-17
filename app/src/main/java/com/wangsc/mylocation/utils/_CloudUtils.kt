@@ -189,23 +189,19 @@ object _CloudUtils {
 
             postRequestByJsonStr(url, json, HttpCallback { html ->
                 try {
-//                    e(html)
                     val file_list: Any = _JsonUtils.getValueByKey(html, "file_list")
-//                    e(file_list.toString())
                     val jsonArray = JSONArray(file_list.toString())
-//                    e(jsonArray.length())
                     val jsonObject = jsonArray.getString(0)
                     val download_url = _JsonUtils.getValueByKey(jsonObject, "download_url").toString()
-//                    e(download_url)
                     callback?.excute(0, download_url)
                 } catch (e: Exception) {
                     e(e.message!!)
-                    callback?.excute(-2, e.message)
+                    callback?.excute(-1, e.message)
                 }
             })
         } catch (e: Exception) {
             e(e.message!!)
-            callback?.excute(-2, e.message)
+            callback?.excute(-1, e.message)
         }
     }
 }

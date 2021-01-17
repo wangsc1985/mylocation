@@ -9,15 +9,13 @@ import android.graphics.Color
 import android.os.Bundle
 import android.provider.Settings
 import android.view.View
-import android.widget.EditText
-import android.widget.ImageView
-import android.widget.LinearLayout
-import android.widget.TextView
+import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import com.amap.api.location.AMapLocationClient
 import com.amap.api.maps.*
 import com.amap.api.maps.AMap.CancelableCallback
 import com.amap.api.maps.model.*
@@ -25,14 +23,12 @@ import com.amap.api.maps.model.LatLngBounds
 import com.wangsc.mylocation.callbacks.CloudCallback
 import com.wangsc.mylocation.models.*
 import com.wangsc.mylocation.sevice.LocationService
-import com.wangsc.mylocation.utils.ImageUtils
-import com.wangsc.mylocation.utils.LoadFileUtils
-import com.wangsc.mylocation.utils._CloudUtils
-import com.wangsc.mylocation.utils._Utils
+import com.wangsc.mylocation.utils.*
 import kotlinx.android.synthetic.main.activity_main.*
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
+import java.io.File
 import java.util.*
 import java.util.concurrent.CyclicBarrier
 import kotlin.collections.ArrayList
@@ -47,6 +43,7 @@ class MainActivity : AppCompatActivity() {
 
     //region 动态权限申请
     var permissions = arrayOf(
+//        Manifest.permission.WAKE_LOCK,
         Manifest.permission.ACCESS_COARSE_LOCATION,
         Manifest.permission.ACCESS_FINE_LOCATION,
         Manifest.permission.ACCESS_NETWORK_STATE,
@@ -118,7 +115,7 @@ class MainActivity : AppCompatActivity() {
      * 队列按钮被选择
      */
     private fun teamMode() {
-        layout_showAll.setBackgroundResource(checkedBoxColor)
+        layout_team.setBackgroundResource(checkedBoxColor)
         iv_showAll.setImageResource(R.drawable.people_checked)
         localUserList?.forEach {
             it.view?.findViewById<LinearLayout>(R.id.layout_root)?.setBackgroundColor(Color.TRANSPARENT)
@@ -129,7 +126,7 @@ class MainActivity : AppCompatActivity() {
      * 用户被选择
      */
     private fun userMode() {
-        layout_showAll.setBackgroundColor(Color.TRANSPARENT)
+        layout_team.setBackgroundColor(Color.TRANSPARENT)
         iv_showAll.setImageResource(R.drawable.people_unchecked)
         localUserList?.forEach {
             if (it.name == selectedUserName) {
@@ -144,7 +141,7 @@ class MainActivity : AppCompatActivity() {
      * 自由模式，用户和队列都不选
      */
     private fun freeMode() {
-        layout_showAll.setBackgroundColor(Color.TRANSPARENT)
+        layout_team.setBackgroundColor(Color.TRANSPARENT)
         localUserList?.forEach {
             it.view?.findViewById<LinearLayout>(R.id.layout_root)?.setBackgroundColor(Color.TRANSPARENT)
         }
@@ -187,16 +184,15 @@ class MainActivity : AppCompatActivity() {
         val avatarView = view.findViewById<ImageView>(R.id.iv_avatar)
         val timeView = view.findViewById<TextView>(R.id.tv_time)
 
-        avatarView.setOnClickListener {
-            selectedUserName = user.name
-            showType = 1
-            moveUserLocation()
-            userMode()
-        }
-
-        avatarView.setImageBitmap(user.avatarImg)
         val span = (System.currentTimeMillis() - user.locationTime.timeInMillis) / 1000
         runOnUiThread {
+            avatarView.setOnClickListener {
+                selectedUserName = user.name
+                showType = 1
+                moveUserLocation()
+                userMode()
+            }
+            avatarView.setImageBitmap(user.avatarImg)
             tv_team.setText(user.teamName)
             currentTeamName = user.teamName
             timeView.setText(span2time(span))
@@ -209,7 +205,7 @@ class MainActivity : AppCompatActivity() {
      * 刷新用户按钮
      */
     private fun updateUserView(user: User) {
-        user.view?.let {view->
+        user.view?.let { view ->
             val timeView = view.findViewById<TextView>(R.id.tv_time)
             currentTeamName = user.teamName
             runOnUiThread {
@@ -246,6 +242,7 @@ class MainActivity : AppCompatActivity() {
         textureMapView.onCreate(savedInstanceState)
         EventBus.getDefault().register(this)
 
+        _Utils.log2file("run","程序启动","")
         showLoadingDialog()
 //        val sha1 = Abc.sHA1(this)
 //        e(sha1)
@@ -314,15 +311,16 @@ class MainActivity : AppCompatActivity() {
                     teamCode = teamCodeView.text.toString()
                     dc.editSetting(Setting.KEYS.phone, phone)
                     dc.editSetting(Setting.KEYS.team_code, teamCode)
-                    initView(dc)
+                    initView()
                 }).setNegativeButton("取消", null).show();
         } else {
-            initView(dc)
+            initView()
         }
     }
 
-    private fun initView(dc: DataContext) {
+    private fun initView() {
         try {
+            val dc = DataContext(this)
             initMap()
             Thread({
                 initMarks()
@@ -344,16 +342,16 @@ class MainActivity : AppCompatActivity() {
                 true
             }
 
-            layout_showAll.setOnClickListener {
+            layout_team.setOnClickListener {
                 showType = 2
                 moveUserLocation()
                 teamMode()
             }
-            layout_showAll.setOnLongClickListener {
+            layout_team.setOnLongClickListener {
                 if (dc.getSetting(Setting.KEYS.phone) == null) {
                     loginUserDialog()
                 } else {
-                    AlertDialog.Builder(this).setItems(arrayOf("切换用户", "队伍更名")) { dialog, which ->
+                    AlertDialog.Builder(this).setItems(arrayOf("切换用户", "队伍更名", "更新头像")) { dialog, which ->
                         when (which) {
                             0 -> {
                                 loginUserDialog()
@@ -361,15 +359,31 @@ class MainActivity : AppCompatActivity() {
                             1 -> {
                                 teamRename()
                             }
+                            2 -> {
+                                Thread {
+                                    localUserList?.forEach { user ->
+                                        loadAvatarImg(user)
+                                        user.avatarMarker?.setIcon(BitmapDescriptorFactory.fromBitmap(ImageUtils.toRoundBitmap(BitmapDescriptorFactory.fromBitmap(user.avatarImg).bitmap)))
+                                        user.view?.let {
+                                            var iv = it.findViewById<ImageView>(R.id.iv_avatar)
+                                            runOnUiThread {
+                                                iv.setImageBitmap(user.avatarImg)
+                                            }
+                                        }
+                                    }
+                                    runOnUiThread {
+                                        Toast.makeText(this, "头像更新完毕", Toast.LENGTH_LONG).show()
+                                    }
+                                }.start()
+                            }
                         }
                     }.show()
                 }
                 true
             }
         } catch (e: Exception) {
-            e("initView "+e.message!!)
+            e("initView " + e.message!!)
         }
-
     }
 
     private fun teamRename() {
@@ -449,7 +463,7 @@ class MainActivity : AppCompatActivity() {
                              */
                             if (localUserList != null) {
                                 var localUser = localUserList!!.firstOrNull {
-                                    it.name==netUser.name
+                                    it.name == netUser.name
                                 }
                                 if (localUser != null) {
                                     localUser.setValus(netUser)
@@ -470,7 +484,7 @@ class MainActivity : AppCompatActivity() {
                             }
                         }
                     } catch (e: Exception) {
-                        e("moveUserLocation "+e.message)
+                        e("moveUserLocation " + e.message)
                     }
                 }
             }
@@ -522,27 +536,21 @@ class MainActivity : AppCompatActivity() {
                                 }
                                 boundsLatlngs.add(LatLng(localUser.latitude, localUser.longitude))
 
-                                var avatarUrl = ""
-                                val cb = CyclicBarrier(2)
-                                _CloudUtils.getDownLoadPath(this@MainActivity, localUser.avatar, CloudCallback { code, result ->
-                                    try {
-                                        if (code == 0) {
-                                            avatarUrl = result.toString()
-                                            var url = LoadFileUtils.loadFileFromHttp(avatarUrl, "${localUser.name}.jpg")
-                                            if (!url.isEmpty()) {
-                                                localUser.avatarImg = BitmapFactory.decodeFile(url)
-                                                addUserView(localUser)
-                                                addMarkers(localUser)
-                                            }
-                                        }
-                                    } finally {
-                                        cb.await()
-                                    }
-                                })
+                                val avatarCacheFile = File(_Session.ROOT_DIR.absolutePath, localUser.avatarCacheFileName)
+                                var avatarCacheFilePath = avatarCacheFile.path
+                                if (avatarCacheFile.exists()) {
+                                    e("cache file exists")
+                                    localUser.avatarImg = BitmapFactory.decodeFile(avatarCacheFilePath)
+                                } else {
+                                    e("cache file not exists")
+                                    loadAvatarImg(localUser)
+                                }
+                                addUserView(localUser)
+                                addMarkers(localUser)
 
-                                cb.await()
+
                             } catch (e: Exception) {
-                                e("initMarks "+e.message!!)
+                                e("initMarks " + e.message!!)
                             }
                         }
 
@@ -555,11 +563,30 @@ class MainActivity : AppCompatActivity() {
                             }
                         }
                     } catch (e: Exception) {
-                        e("initMarks "+e.message!!)
+                        e("initMarks " + e.message!!)
                     }
                 }
             }
         })
+    }
+
+    private fun loadAvatarImg(user: User) {
+        e("user avatar cache file name : ${user.avatarCacheFileName}")
+        val cb = CyclicBarrier(2)
+        _CloudUtils.getDownLoadPath(this@MainActivity, user.avatar, CloudCallback { code, result ->
+            try {
+                if (code == 0) {
+                    val avatarUrl = result.toString()
+                    var avatarCacheFilePath = LoadFileUtils.loadFileFromHttp(avatarUrl, user.avatarCacheFileName)
+                    if (!avatarCacheFilePath.isEmpty()) {
+                        user.avatarImg = BitmapFactory.decodeFile(avatarCacheFilePath)
+                    }
+                }
+            } finally {
+                cb.await()
+            }
+        })
+        cb.await()
     }
 
     override fun onStop() {
@@ -581,7 +608,6 @@ class MainActivity : AppCompatActivity() {
                     if (showType == 0) {
                         showType = preShowType
                         when (showType) {
-                            // TODO: 2021/1/13
                             1 -> {
                                 userMode()
                             }
@@ -594,7 +620,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }, 10000, 10000)
         } catch (e: Exception) {
-            e("startTimer "+e.message!!)
+            e("startTimer " + e.message!!)
         }
     }
 
@@ -639,6 +665,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+//    lateinit var locationClient:AMapLocationClient
     private var preShowType = 0
     private fun initMap() {
         /*
