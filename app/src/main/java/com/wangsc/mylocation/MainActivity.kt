@@ -43,7 +43,7 @@ class MainActivity : AppCompatActivity() {
 
     //region 动态权限申请
     var permissions = arrayOf(
-//        Manifest.permission.WAKE_LOCK,
+        Manifest.permission.WAKE_LOCK,
         Manifest.permission.ACCESS_COARSE_LOCATION,
         Manifest.permission.ACCESS_FINE_LOCATION,
         Manifest.permission.ACCESS_NETWORK_STATE,
@@ -259,6 +259,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         startTimer()
+        moveUserLocation()
         super.onResume()
     }
 

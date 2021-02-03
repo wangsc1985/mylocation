@@ -30,8 +30,9 @@ public class _NotificationUtils {
                 notificationManager.createNotificationChannel(channel);
                 Notification notification = new Notification.Builder(context, "channel_mylocation").setSmallIcon(R.mipmap.ic_launcher)//通知的构建过程基本与默认相同
                         //                .setTicker("hello world")
-                        //                .setWhen(System.currentTimeMillis())
                         .setAutoCancel(false)
+                        .setWhen(System.currentTimeMillis())
+//                        .setContentTitle("在哪儿")
                         //                 Notification.FLAG_ONGOING_EVENT;
                         .setContent(remoteViews)//在这里设置自定义通知的内容
                         .build();
@@ -40,8 +41,9 @@ public class _NotificationUtils {
             } else {
                 Notification notification = new NotificationCompat.Builder(context).setSmallIcon(R.mipmap.ic_launcher)//通知的构建过程基本与默认相同
                         //                .setTicker("hello world")
-                        //                .setWhen(System.currentTimeMillis())
                         .setAutoCancel(false)
+//                        .setContentTitle("在哪儿")
+                        .setWhen(System.currentTimeMillis())
                         //                 Notification.FLAG_ONGOING_EVENT;
                         .setContent(remoteViews)//在这里设置自定义通知的内容
                         .build();

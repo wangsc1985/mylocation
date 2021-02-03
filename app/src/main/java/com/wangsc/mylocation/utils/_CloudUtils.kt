@@ -47,7 +47,7 @@ object _CloudUtils {
         val latch = CountDownLatch(1)
         getRequest("https://sahacloudmanager.azurewebsites.net/home/token/${appid}/${secret}", HttpCallback { html ->
             try {
-//                e(html)
+                e(html)
                 val data = html.split(":")
                 if (data.size == 2) {
                     token = data[0]
